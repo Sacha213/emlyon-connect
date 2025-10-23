@@ -1,0 +1,137 @@
+# emlyon connect API - Exemples de Requêtes
+
+## Variables
+```
+BASE_URL=http://localhost:3001/api
+TOKEN=<votre_token_jwt>
+```
+
+## 🔐 Authentification
+
+### Inscription
+POST {{BASE_URL}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "nouveau@emlyon.com",
+  "password": "password123",
+  "name": "Nouveau Utilisateur"
+}
+
+### Connexion
+POST {{BASE_URL}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@emlyon.com",
+  "password": "password123"
+}
+
+## 👤 Utilisateurs
+
+### Mon Profil
+GET {{BASE_URL}}/users/me
+Authorization: Bearer {{TOKEN}}
+
+### Tous les Utilisateurs
+GET {{BASE_URL}}/users
+Authorization: Bearer {{TOKEN}}
+
+### Utilisateur par ID
+GET {{BASE_URL}}/users/{{USER_ID}}
+Authorization: Bearer {{TOKEN}}
+
+### Upload Photo de Profil
+POST {{BASE_URL}}/users/me/avatar
+Authorization: Bearer {{TOKEN}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="avatar"; filename="photo.jpg"
+Content-Type: image/jpeg
+
+< /path/to/your/image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Mettre à Jour le Profil
+PUT {{BASE_URL}}/users/me
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "name": "Nouveau Nom"
+}
+
+## 📍 Check-Ins
+
+### Tous les Check-Ins
+GET {{BASE_URL}}/checkins
+Authorization: Bearer {{TOKEN}}
+
+### Créer un Check-In
+POST {{BASE_URL}}/checkins
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "locationName": "Le Comptoir des Brasseurs",
+  "latitude": 45.7640,
+  "longitude": 4.8357,
+  "statusEmoji": "🍻"
+}
+
+### Check-In d'un Utilisateur
+GET {{BASE_URL}}/checkins/user/{{USER_ID}}
+Authorization: Bearer {{TOKEN}}
+
+### Supprimer un Check-In
+DELETE {{BASE_URL}}/checkins/{{CHECKIN_ID}}
+Authorization: Bearer {{TOKEN}}
+
+## 📅 Événements
+
+### Tous les Événements
+GET {{BASE_URL}}/events
+Authorization: Bearer {{TOKEN}}
+
+### Événement par ID
+GET {{BASE_URL}}/events/{{EVENT_ID}}
+Authorization: Bearer {{TOKEN}}
+
+### Créer un Événement
+POST {{BASE_URL}}/events
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "title": "Soirée Afterwork",
+  "description": "Rejoignez-nous pour un afterwork convivial !",
+  "date": "2025-10-30T19:00:00.000Z"
+}
+
+### Mettre à Jour un Événement
+PUT {{BASE_URL}}/events/{{EVENT_ID}}
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "title": "Soirée Afterwork (Modifié)",
+  "description": "Description mise à jour"
+}
+
+### Supprimer un Événement
+DELETE {{BASE_URL}}/events/{{EVENT_ID}}
+Authorization: Bearer {{TOKEN}}
+
+### Participer à un Événement
+POST {{BASE_URL}}/events/{{EVENT_ID}}/attend
+Authorization: Bearer {{TOKEN}}
+
+### Se Désinscrire d'un Événement
+DELETE {{BASE_URL}}/events/{{EVENT_ID}}/attend
+Authorization: Bearer {{TOKEN}}
+
+## 🏥 Health Check
+
+### Vérifier l'État du Serveur
+GET {{BASE_URL}}/health

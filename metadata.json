@@ -1,0 +1,7 @@
+{
+  "name": "emlyon connect",
+  "description": "L'application web pour les étudiants d'emlyon business school. Retrouvez-vous, planifiez des sorties et renforcez les liens au sein de la promo.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
