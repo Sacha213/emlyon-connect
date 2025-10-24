@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeftIcon } from './icons';
+import { supabase } from '../services/supabaseClient';
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -8,7 +9,7 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSwitchToRegister, onBack }) => {
-  const [email, setEmail] = useState('alice@emlyon.com');
+  const [email, setEmail] = useState('admin@emlyon.com');
   const [password, setPassword] = useState('password123');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,23 +20,34 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSwitchToRegister, 
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      // Connexion avec Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur de connexion');
+      if (authError) {
+        throw new Error(authError.message);
       }
 
-      // Sauvegarder le token et l'utilisateur
-      localStorage.setItem('token', data.data.token);
-      localStorage.setItem('user', JSON.stringify(data.data.user));
+      if (!authData.user) {
+        throw new Error('Utilisateur non trouvé');
+      }
+
+      // Récupérer les informations complètes de l'utilisateur depuis la table User
+      const { data: userData, error: userError } = await supabase
+        .from('User')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (userError || !userData) {
+        throw new Error('Impossible de récupérer les informations utilisateur');
+      }
+
+      // Sauvegarder l'utilisateur dans localStorage
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('supabase_session', JSON.stringify(authData.session));
 
       onLogin();
     } catch (err) {

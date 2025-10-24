@@ -1,4 +1,6 @@
 import { useState, useRef, ChangeEvent } from 'react';
+import { supabase } from '../services/supabaseClient';
+import { updateUserProfile } from '../services/api';
 
 interface AvatarUploadProps {
     currentAvatar?: string;
@@ -41,50 +43,46 @@ export const AvatarUpload = ({ currentAvatar, onUploadSuccess }: AvatarUploadPro
         setUploading(true);
 
         try {
-            const formData = new FormData();
-            formData.append('avatar', file);
-
-            const token = localStorage.getItem('token');
-
-            if (!token) {
+            // Récupérer l'utilisateur connecté
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!user.id) {
                 alert('Vous devez être connecté pour uploader une photo. Veuillez vous reconnecter.');
                 setPreview(null);
                 setUploading(false);
                 return;
             }
 
-            const response = await fetch('http://localhost:3001/api/users/me/avatar', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
+            // Générer un nom de fichier unique
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+            const filePath = `avatars/${fileName}`;
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }));
-                console.error('Erreur serveur:', errorData);
+            // Upload vers Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
 
-                // Si token invalide, suggérer de se reconnecter
-                if (response.status === 401) {
-                    throw new Error('Session expirée. Veuillez vous reconnecter.');
-                }
-
-                throw new Error(errorData.message || 'Erreur lors de l\'upload');
+            if (uploadError) {
+                throw uploadError;
             }
 
-            const data = await response.json();
+            // Obtenir l'URL publique
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
 
-            // Ajouter un timestamp pour éviter le cache du navigateur
-            const avatarUrlWithCacheBuster = `http://localhost:3001${data.data.avatarUrl}?t=${Date.now()}`;
+            // Mettre à jour le profil dans la base de données
+            await updateUserProfile(user.id, { avatarUrl: publicUrl });
 
             // Mettre à jour l'avatar
-            onUploadSuccess(avatarUrlWithCacheBuster);
+            onUploadSuccess(publicUrl);
             setPreview(null);
 
             // Mettre à jour le localStorage
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            user.avatarUrl = avatarUrlWithCacheBuster;
+            user.avatarUrl = publicUrl;
             localStorage.setItem('user', JSON.stringify(user));
 
             alert('Photo de profil mise à jour !');

@@ -5,8 +5,10 @@ import RegistrationScreen from './components/RegistrationScreen';
 import Dashboard from './components/Dashboard';
 import NotificationComponent from './components/Notification';
 import LandingPage from './components/LandingPage';
+import { supabase } from './services/supabaseClient';
+import * as api from './services/api';
 
-// Mock Data
+// Données de démonstration pour la carte (remplacées par l'API au runtime)
 const MOCK_USERS: User[] = [
   { id: '1', name: 'Alice Dubois', avatarUrl: 'https://picsum.photos/id/1027/200/200', promotion: 'EMI 2025' },
   { id: '2', name: 'Bob Leclerc', avatarUrl: 'https://picsum.photos/id/1005/200/200', promotion: 'EMI 2025' },
@@ -17,45 +19,6 @@ const MOCK_USERS: User[] = [
   { id: '7', name: 'Gloria Robert', avatarUrl: 'https://picsum.photos/id/1028/200/200', promotion: 'EMI 2026' },
   { id: '8', name: 'Hugo Moreau', avatarUrl: 'https://picsum.photos/id/103/200/200', promotion: 'EMI Test' },
   { id: '9', name: 'Ines Simon', avatarUrl: 'https://picsum.photos/id/1031/200/200', promotion: 'EMI Test' },
-  { id: '10', name: 'Jules Laurent', avatarUrl: 'https://picsum.photos/id/1033/200/200', promotion: 'EMI 2025' },
-];
-
-
-const ME_USER: User = { id: 'user-me', name: 'Jean Dupont', avatarUrl: 'https://picsum.photos/id/1011/200/200', promotion: 'EMI 2025' };
-
-const MOCK_EVENTS: Event[] = [
-  {
-    id: 'e1',
-    title: 'Soirée Bière-Pong',
-    description: 'Rendez-vous au bar "Le Truskel" pour un tournoi amical.',
-    date: new Date().getTime() + 2 * 24 * 3600 * 1000, // Dans 2 jours
-    creator: MOCK_USERS[0],
-    attendees: [MOCK_USERS[0], MOCK_USERS[1], MOCK_USERS[3], MOCK_USERS[5]],
-  },
-  {
-    id: 'e2',
-    title: 'Session Cinéma : Dune 2',
-    description: "Allons voir le dernier chef-d'œuvre de SF ensemble au Grand Rex.",
-    date: new Date().getTime() + 4 * 24 * 3600 * 1000, // Dans 4 jours
-    creator: MOCK_USERS[1],
-    attendees: [MOCK_USERS[1], MOCK_USERS[4]],
-  },
-  {
-    id: 'e3',
-    title: 'Pique-nique au Champ de Mars',
-    description: 'Apportez à manger, à boire et votre bonne humeur pour un après-midi détente avec vue sur la Tour Eiffel.',
-    date: new Date().getTime() + 7 * 24 * 3600 * 1000, // Dans 1 semaine
-    creator: MOCK_USERS[2],
-    attendees: [MOCK_USERS[2], MOCK_USERS[6], MOCK_USERS[7], MOCK_USERS[8], MOCK_USERS[9]],
-  },
-  {
-    id: 'e4',
-    title: 'Visite du Musée d\'Orsay',
-    description: 'Explorons ensemble les chefs-d\'œuvre de l\'impressionnisme. Rendez-vous devant l\'entrée principale.',
-    date: new Date().getTime() + 10 * 24 * 3600 * 1000, // Dans 10 jours
-    creator: MOCK_USERS[8],
-    attendees: [MOCK_USERS[8], MOCK_USERS[0]],
-  }
 ];
 
 const MOCK_CHECKINS: CheckIn[] = [
@@ -83,74 +46,65 @@ const App: React.FC = () => {
   const [appView, setAppView] = useState<'landing' | 'auth'>('landing');
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
 
-  // Charger les données depuis l'API quand un utilisateur est connecté
-  useEffect(() => {
-    if (currentUser) {
-      loadCheckIns();
-      loadEvents();
-    }
-  }, [currentUser]);
+  // Note: Pas de useEffect ici pour éviter les boucles infinies
+  // Les données sont chargées manuellement après login/register
 
-  const loadCheckIns = async () => {
+  const loadCheckIns = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch('http://localhost:3001/api/checkins', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCheckIns(data.data || []);
-      }
+      const checkIns = await api.getAllCheckIns();
+      setCheckIns(checkIns);
     } catch (error) {
       console.error('Erreur lors du chargement des check-ins:', error);
     }
-  };
+  }, []);
 
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch('http://localhost:3001/api/events', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setEvents(data.data || []);
-      }
+      const events = await api.getAllEvents();
+      setEvents(events);
     } catch (error) {
       console.error('Erreur lors du chargement des événements:', error);
     }
-  };
-
-  // Restaurer la session au chargement de l'application
+  }, []);  // Restaurer la session au chargement de l'application
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
+    const savedSession = localStorage.getItem('supabase_session');
 
-    if (token && savedUser) {
+    if (savedUser && savedSession) {
       try {
         const user = JSON.parse(savedUser);
         setCurrentUser(user);
-        setAppView('landing'); // L'utilisateur est connecté, on ne montre pas le landing
-        // Charger les données depuis l'API
+        setAppView('landing');
+        // Charger les données depuis Supabase
         loadCheckIns();
         loadEvents();
       } catch (error) {
         console.error('Erreur lors de la restauration de la session:', error);
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('supabase_session');
       }
     }
-  }, []);
+  }, [loadCheckIns, loadEvents]);
+
+  // Polling : Recharger les données toutes les 5 secondes pour simuler le temps réel
+  // (Alternative à Realtime qui nécessite early access)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Charger immédiatement
+    loadCheckIns();
+    loadEvents();
+
+    // Puis recharger toutes les 5 secondes
+    const intervalId = setInterval(() => {
+      loadCheckIns();
+      loadEvents();
+    }, 5000); // 5 secondes
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [currentUser, loadCheckIns, loadEvents]);
 
   const handleLogin = () => {
     // L'utilisateur a déjà été sauvegardé dans localStorage par LoginScreen
@@ -160,7 +114,7 @@ const App: React.FC = () => {
         const user = JSON.parse(savedUser);
         setCurrentUser(user);
         showNotification(`Bienvenue, ${user.name} !`, 'success');
-        // Charger les données depuis l'API
+        // Charger les données depuis Supabase
         loadCheckIns();
         loadEvents();
       } catch (error) {
@@ -177,7 +131,7 @@ const App: React.FC = () => {
         const user = JSON.parse(savedUser);
         setCurrentUser(user);
         showNotification(`Bienvenue, ${user.name} ! Votre compte a été créé.`, 'success');
-        // Charger les données depuis l'API
+        // Charger les données depuis Supabase
         loadCheckIns();
         loadEvents();
       } catch (error) {
@@ -212,32 +166,13 @@ const App: React.FC = () => {
     if (!currentUser) return;
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        showNotification('Vous devez être connecté', 'error');
-        return;
-      }
+      const checkIn = await api.createCheckIn(currentUser.id, locationName, coords, statusEmoji);
 
-      // Appeler l'API pour créer le check-in
-      const response = await fetch('http://localhost:3001/api/checkins', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          locationName,
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          statusEmoji
-        })
-      });
-
-      if (!response.ok) {
+      if (!checkIn) {
         throw new Error('Erreur lors de la création du check-in');
       }
 
-      // Recharger les check-ins depuis l'API
+      // Recharger les check-ins depuis Supabase
       await loadCheckIns();
       showNotification(`Vous êtes maintenant localisé(e) à ${locationName}`, 'success');
     } catch (error) {
@@ -250,31 +185,13 @@ const App: React.FC = () => {
     if (!currentUser) return;
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        showNotification('Vous devez être connecté', 'error');
-        return;
-      }
+      const event = await api.createEvent(currentUser.id, title, description, date);
 
-      // Appeler l'API pour créer l'événement
-      const response = await fetch('http://localhost:3001/api/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          date: new Date(date).toISOString()
-        })
-      });
-
-      if (!response.ok) {
+      if (!event) {
         throw new Error('Erreur lors de la création de l\'événement');
       }
 
-      // Recharger les événements depuis l'API
+      // Recharger les événements depuis Supabase
       await loadEvents();
       showNotification(`Nouvel événement créé : ${title}`, 'info');
     } catch (error) {
@@ -287,12 +204,6 @@ const App: React.FC = () => {
     if (!currentUser) return;
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        showNotification('Vous devez être connecté', 'error');
-        return;
-      }
-
       // Trouver l'événement pour savoir si l'utilisateur participe déjà
       const event = events.find(e => e.id === eventId);
       if (!event) {
@@ -300,37 +211,45 @@ const App: React.FC = () => {
         return;
       }
 
-      console.log('🔍 Event trouvé:', event);
-      console.log('👤 CurrentUser ID:', currentUser.id);
-      console.log('👥 Attendees:', event.attendees);
-
       const isAttending = event.attendees.some(a => a.id === currentUser.id);
-      console.log('✅ Is attending:', isAttending);
 
-      // Utiliser POST pour participer, DELETE pour quitter
-      const method = isAttending ? 'DELETE' : 'POST';
-      console.log(`📡 Méthode HTTP utilisée: ${method} pour l'événement ${eventId}`);
-
-      const response = await fetch(`http://localhost:3001/api/events/${eventId}/attend`, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`
+      if (isAttending) {
+        // Annuler la participation
+        const success = await api.unattendEvent(eventId, currentUser.id);
+        if (success) {
+          showNotification('Vous ne participez plus à cet événement', 'info');
         }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Erreur API:', errorData);
-        throw new Error(errorData.message || 'Erreur lors de la participation à l\'événement');
+      } else {
+        // S'inscrire
+        const success = await api.attendEvent(eventId, currentUser.id);
+        if (success) {
+          showNotification('Vous participez maintenant à cet événement !', 'success');
+        }
       }
 
-      console.log('✅ Participation modifiée avec succès');
-      // Recharger les événements depuis l'API
+      // Recharger les événements
       await loadEvents();
-      showNotification(isAttending ? 'Participation annulée' : 'Vous participez à l\'événement', 'success');
     } catch (error) {
-      console.error('💥 Erreur lors de la participation à l\'événement:', error);
-      showNotification('Erreur lors de la participation', 'error');
+      console.error('Erreur lors de la gestion de la participation:', error);
+      showNotification('Erreur lors de la gestion de la participation', 'error');
+    }
+  };
+
+  const removeEvent = async (eventId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const success = await api.deleteEvent(eventId);
+
+      if (success) {
+        await loadEvents();
+        showNotification('Événement supprimé', 'info');
+      } else {
+        throw new Error('Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'événement:', error);
+      showNotification('Erreur lors de la suppression de l\'événement', 'error');
     }
   };
 

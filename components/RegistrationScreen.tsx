@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeftIcon } from './icons';
+import { supabase } from '../services/supabaseClient';
 
 interface RegistrationScreenProps {
   onRegister: (name: string, email: string) => void;
@@ -27,23 +28,42 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister, onS
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, name, promotion }),
+      // 1. Créer l'utilisateur dans Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de l\'inscription');
+      if (authError) {
+        throw new Error(authError.message);
       }
 
-      // Sauvegarder le token et l'utilisateur
-      localStorage.setItem('token', data.data.token);
-      localStorage.setItem('user', JSON.stringify(data.data.user));
+      if (!authData.user) {
+        throw new Error('Erreur lors de la création du compte');
+      }
+
+      // 2. Créer l'entrée dans la table User
+      const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`;
+
+      const { data: userData, error: userError } = await supabase
+        .from('User')
+        .insert({
+          id: authData.user.id,
+          email,
+          name,
+          promotion,
+          avatarUrl,
+        })
+        .select()
+        .single();
+
+      if (userError) {
+        throw new Error(userError.message);
+      }
+
+      // 3. Sauvegarder dans localStorage
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('supabase_session', JSON.stringify(authData.session));
 
       onRegister(name, email);
     } catch (err) {
