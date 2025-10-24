@@ -25,6 +25,35 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, curre
     ? checkIns.filter(c => c.user.promotion === currentUser.promotion)
     : checkIns;
 
+  // Détecter automatiquement la position de l'utilisateur au chargement
+  React.useEffect(() => {
+    console.log('🌍 Détection automatique de la position...');
+
+    if (!navigator.geolocation) {
+      console.error('❌ Géolocalisation non supportée');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log('✅ Position automatique obtenue:', position.coords.latitude, position.coords.longitude);
+        setCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.error('❌ Erreur de géolocalisation automatique:', error.code, error.message);
+        // Ne pas afficher d'alerte pour l'auto-détection, juste logger l'erreur
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  }, []); // Une seule fois au chargement
+
   // Debug logs
   React.useEffect(() => {
     console.log('👤 Current user promotion:', currentUser.promotion);
@@ -32,7 +61,7 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, curre
     console.log('🔍 Filtered check-ins:', filteredCheckIns.length);
   }, [currentUser, checkIns, filteredCheckIns]);
 
-  const handleStartCheckIn = (showCheckInForm = true) => {
+  const handleStartCheckIn = () => {
     console.log('🌍 Demande de géolocalisation...');
     setIsLoadingGeo(true);
 
@@ -51,9 +80,7 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, curre
           longitude: position.coords.longitude,
         });
         setIsLoadingGeo(false);
-        if (showCheckInForm) {
-          setIsCheckingIn(true);
-        }
+        setIsCheckingIn(true);
       },
       (error) => {
         console.error('❌ Erreur de géolocalisation:', error.code, error.message);
@@ -75,9 +102,7 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, curre
           longitude: 4.838059171567862
         });
 
-        if (showCheckInForm) {
-          setIsCheckingIn(true);
-        }
+        setIsCheckingIn(true);
       },
       {
         enableHighAccuracy: false, // Changé à false pour être plus permissif
@@ -187,41 +212,6 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, curre
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {view === 'map' && !coords && (
-              <button
-                onClick={() => handleStartCheckIn(false)}
-                disabled={isLoadingGeo}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition flex items-center gap-2 disabled:opacity-50"
-                aria-label="Voir ma position"
-              >
-                {isLoadingGeo ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Localisation...
-                  </>
-                ) : (
-                  <>
-                    <MapPinIcon className="w-4 h-4" />
-                    Ma position
-                  </>
-                )}
-              </button>
-            )}
-            {coords && view === 'map' && (
-              <button
-                onClick={() => {
-                  setCoords(null);
-                  setIsCheckingIn(false);
-                }}
-                className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition"
-                aria-label="Masquer ma position"
-              >
-                Masquer
-              </button>
-            )}
             <div className="flex items-center gap-1 bg-brand-bg p-1 rounded-lg">
               <button onClick={() => setView('map')} className={`p-2 rounded-md transition ${view === 'map' ? 'bg-brand-emlyon text-white' : 'text-brand-subtle hover:text-brand-dark'}`} aria-label="Vue carte"><MapIcon className="w-5 h-5" /></button>
               <button onClick={() => setView('list')} className={`p-2 rounded-md transition ${view === 'list' ? 'bg-brand-emlyon text-white' : 'text-brand-subtle hover:text-brand-dark'}`} aria-label="Vue liste"><ListBulletIcon className="w-5 h-5" /></button>

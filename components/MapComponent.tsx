@@ -137,14 +137,18 @@ const MapComponent: React.FC<MapComponentProps> = ({ checkIns, currentUserLocati
         className: 'custom-popup'
       });
 
-      // Centrer la carte sur la position actuelle
+      // Centrer la carte sur la position actuelle automatiquement
       mapInstance.current.setView(
         [currentUserLocation.latitude, currentUserLocation.longitude],
-        15
+        15,
+        { animate: true, duration: 1 }
       );
     }
 
   }, [currentUserLocation]);
+
+  // Plus besoin de l'événement centerOnUser
+  // La carte se centre automatiquement à chaque mise à jour de position
 
   return (
     <>

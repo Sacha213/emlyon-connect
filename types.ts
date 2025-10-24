@@ -24,7 +24,27 @@ export interface Event {
   attendees: User[];
 }
 
-export type AppView = 'presence' | 'events';
+export interface Feedback {
+  id: string;
+  title: string;
+  description: string;
+  category: 'bug' | 'feature' | 'improvement' | 'other';
+  status: 'pending' | 'in-progress' | 'completed' | 'rejected';
+  creator: User;
+  createdAt: number;
+  upvotes: string[]; // Array of user IDs who upvoted
+  comments: FeedbackComment[];
+}
+
+export interface FeedbackComment {
+  id: string;
+  feedbackId: string;
+  user: User;
+  content: string;
+  createdAt: number;
+}
+
+export type AppView = 'presence' | 'events' | 'feedback';
 
 export interface Notification {
   id: string;

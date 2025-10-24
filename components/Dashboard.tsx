@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import type { User, CheckIn, Event, AppView } from '../types';
+import type { User, CheckIn, Event, Feedback, AppView } from '../types';
 import Header from './Header';
 import PresenceView from './PresenceView';
 import EventsView from './EventsView';
+import FeedbackView from './FeedbackView';
 import { AvatarUpload } from './AvatarUpload';
 import { UsersIcon, CalendarIcon } from './icons';
 
@@ -14,6 +15,10 @@ interface DashboardProps {
   events: Event[];
   createEvent: (title: string, description: string, date: number) => void;
   toggleEventAttendance: (eventId: string) => void;
+  feedbacks: Feedback[];
+  onCreateFeedback: (title: string, description: string, category: string) => void;
+  onUpvoteFeedback: (feedbackId: string) => void;
+  onAddComment: (feedbackId: string, content: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = (props) => {
@@ -54,6 +59,15 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 Événements
               </button>
               <button
+                onClick={() => {
+                  setActiveView('feedback');
+                  setShowProfile(false);
+                }}
+                className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${activeView === 'feedback' && !showProfile ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
+              >
+                💬 Feedback
+              </button>
+              <button
                 onClick={() => setShowProfile(true)}
                 className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${showProfile ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
               >
@@ -80,12 +94,20 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </div>
           ) : activeView === 'presence' ? (
             <PresenceView checkIns={props.checkIns} addCheckIn={props.addCheckIn} currentUser={props.currentUser} />
-          ) : (
+          ) : activeView === 'events' ? (
             <EventsView
               events={props.events}
               createEvent={props.createEvent}
               toggleEventAttendance={props.toggleEventAttendance}
               currentUser={props.currentUser}
+            />
+          ) : (
+            <FeedbackView
+              feedbacks={props.feedbacks}
+              currentUser={props.currentUser}
+              onCreateFeedback={props.onCreateFeedback}
+              onUpvoteFeedback={props.onUpvoteFeedback}
+              onAddComment={props.onAddComment}
             />
           )}
         </div>

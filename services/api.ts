@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { User, CheckIn, Event } from '../types';
+import type { User, CheckIn, Event, Feedback, FeedbackComment } from '../types';
 
 // Fonction pour générer un UUID v4
 function generateUUID(): string {
@@ -262,4 +262,172 @@ export const updateUserProfile = async (userId: string, updates: { name?: string
     }
 
     return data;
+};
+
+// ==================== FEEDBACKS ====================
+
+export const getAllFeedbacks = async (): Promise<Feedback[]> => {
+    const { data, error } = await supabase
+        .from('Feedback')
+        .select(`
+      *,
+      creator:User!Feedback_creatorId_fkey (
+        id,
+        name,
+        avatarUrl,
+        promotion
+      ),
+      comments:FeedbackComment (
+        id,
+        feedbackId,
+        content,
+        createdAt,
+        user:User!FeedbackComment_userId_fkey (
+          id,
+          name,
+          avatarUrl,
+          promotion
+        )
+      )
+    `)
+        .order('createdAt', { ascending: false });
+
+    if (error) {
+        console.error('Erreur lors du chargement des feedbacks:', error);
+        return [];
+    }
+
+    return (data || []).map((feedback: any) => ({
+        id: feedback.id,
+        title: feedback.title,
+        description: feedback.description,
+        category: feedback.category,
+        status: feedback.status,
+        creator: feedback.creator,
+        createdAt: new Date(feedback.createdAt + 'Z').getTime(),
+        upvotes: feedback.upvotes || [],
+        comments: (feedback.comments || []).map((comment: any) => ({
+            id: comment.id,
+            feedbackId: comment.feedbackId,
+            user: comment.user,
+            content: comment.content,
+            createdAt: new Date(comment.createdAt + 'Z').getTime()
+        }))
+    }));
+};
+
+export const createFeedback = async (
+    title: string,
+    description: string,
+    category: string,
+    creatorId: string
+): Promise<Feedback | null> => {
+    const feedbackId = generateUUID();
+
+    const { data, error } = await supabase
+        .from('Feedback')
+        .insert({
+            id: feedbackId,
+            title,
+            description,
+            category,
+            status: 'pending',
+            creatorId,
+            upvotes: []
+        })
+        .select(`
+      *,
+      creator:User!Feedback_creatorId_fkey (
+        id,
+        name,
+        avatarUrl,
+        promotion
+      )
+    `)
+        .single();
+
+    if (error) {
+        console.error('Erreur lors de la création du feedback:', error);
+        return null;
+    }
+
+    return {
+        ...data,
+        createdAt: new Date(data.createdAt + 'Z').getTime(),
+        comments: []
+    };
+};
+
+export const upvoteFeedback = async (feedbackId: string, userId: string): Promise<boolean> => {
+    // Récupérer le feedback actuel
+    const { data: feedback, error: fetchError } = await supabase
+        .from('Feedback')
+        .select('upvotes')
+        .eq('id', feedbackId)
+        .single();
+
+    if (fetchError) {
+        console.error('Erreur lors de la récupération du feedback:', fetchError);
+        return false;
+    }
+
+    const upvotes = feedback.upvotes || [];
+    const hasUpvoted = upvotes.includes(userId);
+
+    // Toggle upvote
+    const newUpvotes = hasUpvoted
+        ? upvotes.filter((id: string) => id !== userId)
+        : [...upvotes, userId];
+
+    const { error } = await supabase
+        .from('Feedback')
+        .update({ upvotes: newUpvotes })
+        .eq('id', feedbackId);
+
+    if (error) {
+        console.error('Erreur lors du vote du feedback:', error);
+        return false;
+    }
+
+    return true;
+};
+
+export const addFeedbackComment = async (
+    feedbackId: string,
+    userId: string,
+    content: string
+): Promise<FeedbackComment | null> => {
+    const commentId = generateUUID();
+
+    const { data, error } = await supabase
+        .from('FeedbackComment')
+        .insert({
+            id: commentId,
+            feedbackId,
+            userId,
+            content
+        })
+        .select(`
+      *,
+      user:User!FeedbackComment_userId_fkey (
+        id,
+        name,
+        avatarUrl,
+        promotion
+      )
+    `)
+        .single();
+
+    if (error) {
+        console.error('Erreur lors de l\'ajout du commentaire:', error);
+        return null;
+    }
+
+    return {
+        id: data.id,
+        feedbackId: data.feedbackId,
+        user: data.user,
+        content: data.content,
+        createdAt: new Date(data.createdAt + 'Z').getTime()
+    };
 };

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import type { User, CheckIn, Event, Notification } from './types';
+import type { User, CheckIn, Event, Feedback, Notification } from './types';
 import LoginScreen from './components/LoginScreen';
 import RegistrationScreen from './components/RegistrationScreen';
 import Dashboard from './components/Dashboard';
@@ -42,6 +42,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [appView, setAppView] = useState<'landing' | 'auth'>('landing');
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
@@ -65,7 +66,18 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Erreur lors du chargement des événements:', error);
     }
-  }, []);  // Restaurer la session au chargement de l'application
+  }, []);
+
+  const loadFeedbacks = useCallback(async () => {
+    try {
+      const feedbacks = await api.getAllFeedbacks();
+      setFeedbacks(feedbacks);
+    } catch (error) {
+      console.error('Erreur lors du chargement des feedbacks:', error);
+    }
+  }, []);
+
+  // Restaurer la session au chargement de l'application
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     const savedSession = localStorage.getItem('supabase_session');
@@ -78,13 +90,14 @@ const App: React.FC = () => {
         // Charger les données depuis Supabase
         loadCheckIns();
         loadEvents();
+        loadFeedbacks();
       } catch (error) {
         console.error('Erreur lors de la restauration de la session:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('supabase_session');
       }
     }
-  }, [loadCheckIns, loadEvents]);
+  }, [loadCheckIns, loadEvents, loadFeedbacks]);
 
   // Polling : Recharger les données toutes les 5 secondes pour simuler le temps réel
   // (Alternative à Realtime qui nécessite early access)
@@ -94,17 +107,19 @@ const App: React.FC = () => {
     // Charger immédiatement
     loadCheckIns();
     loadEvents();
+    loadFeedbacks();
 
     // Puis recharger toutes les 5 secondes
     const intervalId = setInterval(() => {
       loadCheckIns();
       loadEvents();
+      loadFeedbacks();
     }, 5000); // 5 secondes
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [currentUser, loadCheckIns, loadEvents]);
+  }, [currentUser, loadCheckIns, loadEvents, loadFeedbacks]);
 
   const handleLogin = () => {
     // L'utilisateur a déjà été sauvegardé dans localStorage par LoginScreen
@@ -117,6 +132,7 @@ const App: React.FC = () => {
         // Charger les données depuis Supabase
         loadCheckIns();
         loadEvents();
+        loadFeedbacks();
       } catch (error) {
         console.error('Erreur lors de la lecture de l\'utilisateur:', error);
       }
@@ -134,6 +150,7 @@ const App: React.FC = () => {
         // Charger les données depuis Supabase
         loadCheckIns();
         loadEvents();
+        loadFeedbacks();
       } catch (error) {
         console.error('Erreur lors de la lecture de l\'utilisateur:', error);
       }
@@ -253,6 +270,57 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCreateFeedback = async (title: string, description: string, category: string) => {
+    if (!currentUser) return;
+
+    try {
+      const feedback = await api.createFeedback(title, description, category, currentUser.id);
+
+      if (!feedback) {
+        throw new Error('Erreur lors de la création du feedback');
+      }
+
+      await loadFeedbacks();
+      showNotification(`Feedback créé : ${title}`, 'success');
+    } catch (error) {
+      console.error('Erreur lors de la création du feedback:', error);
+      showNotification('Erreur lors de la création du feedback', 'error');
+    }
+  };
+
+  const handleUpvoteFeedback = async (feedbackId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const success = await api.upvoteFeedback(feedbackId, currentUser.id);
+
+      if (success) {
+        await loadFeedbacks();
+      }
+    } catch (error) {
+      console.error('Erreur lors du vote:', error);
+      showNotification('Erreur lors du vote', 'error');
+    }
+  };
+
+  const handleAddComment = async (feedbackId: string, content: string) => {
+    if (!currentUser) return;
+
+    try {
+      const comment = await api.addFeedbackComment(feedbackId, currentUser.id, content);
+
+      if (!comment) {
+        throw new Error('Erreur lors de l\'ajout du commentaire');
+      }
+
+      await loadFeedbacks();
+      showNotification('Commentaire ajouté', 'success');
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du commentaire:', error);
+      showNotification('Erreur lors de l\'ajout du commentaire', 'error');
+    }
+  };
+
   const renderAuthFlow = () => {
     if (authView === 'login') {
       return <LoginScreen
@@ -279,6 +347,10 @@ const App: React.FC = () => {
           events={events}
           createEvent={createEvent}
           toggleEventAttendance={toggleEventAttendance}
+          feedbacks={feedbacks}
+          onCreateFeedback={handleCreateFeedback}
+          onUpvoteFeedback={handleUpvoteFeedback}
+          onAddComment={handleAddComment}
         />
       );
     }
