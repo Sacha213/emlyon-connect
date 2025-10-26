@@ -27,8 +27,11 @@ const Item: React.FC<{
 const BottomNav: React.FC<BottomNavProps> = ({ active, onChange }) => {
     return (
         <nav
-            className="fixed bottom-0 inset-x-0 z-[1000] md:hidden bg-brand-light/90 backdrop-blur border-t border-brand-secondary"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            className="fixed bottom-0 inset-x-0 z-[1000] md:hidden bg-brand-light/90 backdrop-blur border-t border-brand-secondary shadow-[0_-8px_20px_rgba(0,0,0,0.25)]"
+            style={{
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+                paddingTop: '10px'
+            }}
             role="navigation"
             aria-label="Navigation principale"
         >

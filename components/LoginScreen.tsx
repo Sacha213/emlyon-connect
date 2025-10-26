@@ -104,10 +104,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSwitchToRegister, 
             <p className="text-sm text-red-500 text-center">{error}</p>
           )}
 
-          <div className="text-xs text-gray-500 text-center bg-blue-50 p-2 rounded">
-            💡 Identifiants de test : <code className="font-mono bg-white px-1">alice@emlyon.com</code> / <code className="font-mono bg-white px-1">password123</code>
-          </div>
-
           <div className="pt-4">
             <button
               type="submit"

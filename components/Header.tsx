@@ -9,7 +9,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
   return (
-    <header className="bg-brand-bg/90 backdrop-blur-sm sticky top-0 z-[1000] p-4 flex justify-between items-center border-b border-brand-secondary">
+    <header
+      className="bg-brand-bg sticky top-0 z-[1200] px-4 pb-4 flex justify-between items-center border-b border-brand-secondary shadow-lg"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+    >
       <div className="text-2xl font-bold text-brand-dark">
         <span className="font-black text-brand-emlyon uppercase tracking-wide">emlyon</span>
         <span className="font-light"> connect</span>
@@ -28,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
           <LogoutIcon className="w-6 h-6 text-brand-subtle" />
         </button>
       </div>
-    </header>
+  </header>
   );
 };
 
