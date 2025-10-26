@@ -392,7 +392,7 @@ const App: React.FC = () => {
   };
 
   return (
-  <div className="min-h-screen bg-brand-bg">
+    <div className="min-h-screen bg-brand-bg">
       {notification && <NotificationComponent notification={notification} onClose={() => setNotification(null)} />}
       {renderContent()}
     </div>
