@@ -235,7 +235,7 @@ const App: React.FC = () => {
       // Recharger les événements depuis Supabase
       await loadEvents();
       showNotification(`Nouvel événement créé : ${title}`, 'info');
-      
+
       // 🔔 Envoyer une notification push à tous les utilisateurs
       await notifyNewEvent(event.id, title, new Date(date));
     } catch (error) {
@@ -268,7 +268,7 @@ const App: React.FC = () => {
         const success = await api.attendEvent(eventId, currentUser.id);
         if (success) {
           showNotification('Vous participez maintenant à cet événement !', 'success');
-          
+
           // 🔔 Planifier un rappel 2h avant l'événement
           await scheduleEventReminder(eventId, currentUser.id, event.title, new Date(event.date));
         }

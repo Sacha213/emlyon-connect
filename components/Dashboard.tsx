@@ -93,7 +93,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   <p className="text-gray-500">{currentUser.email}</p>
                 </div>
               </div>
-              
+
               {/* Section notifications push */}
               <div className="mt-8">
                 <h3 className="text-lg font-bold text-brand-dark mb-4">Paramètres</h3>
