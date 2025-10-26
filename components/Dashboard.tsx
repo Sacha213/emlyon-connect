@@ -11,7 +11,8 @@ interface DashboardProps {
   currentUser: User;
   onLogout: () => void;
   checkIns: CheckIn[];
-  addCheckIn: (locationName: string, coords: { latitude: number; longitude: number; }, statusEmoji: string | null) => void;
+  addCheckIn: (locationName: string, coords: { latitude: number; longitude: number; }, statusEmoji: string | null) => Promise<string | null>;
+  updateCheckInStatus: (checkInId: string, statusEmoji: string) => void;
   events: Event[];
   createEvent: (title: string, description: string, date: number) => void;
   toggleEventAttendance: (eventId: string) => void;
@@ -47,7 +48,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 }}
                 className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${activeView === 'presence' && !showProfile ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
               >
-                Qui est sorti ?
+                Carte
               </button>
               <button
                 onClick={() => {
@@ -93,7 +94,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
               </div>
             </div>
           ) : activeView === 'presence' ? (
-            <PresenceView checkIns={props.checkIns} addCheckIn={props.addCheckIn} currentUser={props.currentUser} />
+            <PresenceView
+              checkIns={props.checkIns}
+              addCheckIn={props.addCheckIn}
+              updateCheckInStatus={props.updateCheckInStatus}
+              currentUser={props.currentUser}
+            />
           ) : activeView === 'events' ? (
             <EventsView
               events={props.events}

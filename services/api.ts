@@ -114,6 +114,21 @@ export const deleteCheckIn = async (checkInId: string): Promise<boolean> => {
     return true;
 };
 
+export const updateCheckInStatus = async (checkInId: string, statusEmoji: string): Promise<boolean> => {
+    const { error } = await supabase
+        .from('CheckIn')
+        .update({ statusEmoji })
+        .eq('id', checkInId);
+
+    if (error) {
+        console.error('Erreur lors de la mise à jour du statut du check-in:', error);
+        return false;
+    }
+
+    console.log('✅ Statut du check-in mis à jour:', checkInId, statusEmoji);
+    return true;
+};
+
 // ==================== EVENTS ====================
 
 export const getAllEvents = async (): Promise<Event[]> => {
@@ -147,7 +162,8 @@ export const getAllEvents = async (): Promise<Event[]> => {
         description: event.description,
         date: new Date(event.date + 'Z').getTime(), // Forcer UTC
         creator: event.creator,
-        attendees: event.attendees.map((a: any) => a.user)
+        attendees: event.attendees.map((a: any) => a.user),
+        category: event.category
     }));
 };
 
@@ -155,7 +171,8 @@ export const createEvent = async (
     userId: string,
     title: string,
     description: string,
-    date: number
+    date: number,
+    category?: string
 ): Promise<Event | null> => {
     // 1. Créer l'événement avec un ID généré
     const eventId = generateUUID();
@@ -166,7 +183,8 @@ export const createEvent = async (
             title,
             description,
             date: new Date(date).toISOString(),
-            creatorId: userId
+            creatorId: userId,
+            category: category || '🎉 Autre'
         })
         .select(`
       *,
@@ -197,7 +215,8 @@ export const createEvent = async (
         description: eventData.description,
         date: new Date(eventData.date + 'Z').getTime(), // Forcer UTC
         creator: eventData.creator,
-        attendees: [eventData.creator]
+        attendees: [eventData.creator],
+        category: eventData.category
     };
 };
 

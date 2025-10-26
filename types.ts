@@ -22,6 +22,7 @@ export interface Event {
   date: number;
   creator: User;
   attendees: User[];
+  category?: string; // Catégorie de l'événement (Soirée, Sport, Culture, etc.)
 }
 
 export interface Feedback {
@@ -42,6 +43,15 @@ export interface FeedbackComment {
   user: User;
   content: string;
   createdAt: number;
+}
+
+export interface Place {
+  id: string;
+  name: string;
+  category: 'restaurant' | 'bar' | 'cafe' | 'shop' | 'fast_food';
+  latitude: number;
+  longitude: number;
+  address?: string;
 }
 
 export type AppView = 'presence' | 'events' | 'feedback';

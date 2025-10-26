@@ -179,8 +179,8 @@ const App: React.FC = () => {
     }
   }, [notification]);
 
-  const addCheckIn = async (locationName: string, coords: { latitude: number; longitude: number; }, statusEmoji: string | null) => {
-    if (!currentUser) return;
+  const addCheckIn = async (locationName: string, coords: { latitude: number; longitude: number; }, statusEmoji: string | null): Promise<string | null> => {
+    if (!currentUser) return null;
 
     try {
       const checkIn = await api.createCheckIn(currentUser.id, locationName, coords, statusEmoji);
@@ -192,17 +192,40 @@ const App: React.FC = () => {
       // Recharger les check-ins depuis Supabase
       await loadCheckIns();
       showNotification(`Vous êtes maintenant localisé(e) à ${locationName}`, 'success');
+
+      // Retourner l'ID du check-in créé
+      return checkIn.id;
     } catch (error) {
       console.error('Erreur lors de la création du check-in:', error);
       showNotification('Erreur lors de la création du check-in', 'error');
+      return null;
     }
   };
 
-  const createEvent = async (title: string, description: string, date: number) => {
+  const updateCheckInStatus = async (checkInId: string, statusEmoji: string) => {
     if (!currentUser) return;
 
     try {
-      const event = await api.createEvent(currentUser.id, title, description, date);
+      const success = await api.updateCheckInStatus(checkInId, statusEmoji);
+
+      if (!success) {
+        throw new Error('Erreur lors de la mise à jour du statut');
+      }
+
+      // Recharger les check-ins depuis Supabase
+      await loadCheckIns();
+      showNotification('Statut mis à jour 😊', 'success');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      showNotification('Erreur lors de la mise à jour du statut', 'error');
+    }
+  };
+
+  const createEvent = async (title: string, description: string, date: number, category: string) => {
+    if (!currentUser) return;
+
+    try {
+      const event = await api.createEvent(currentUser.id, title, description, date, category);
 
       if (!event) {
         throw new Error('Erreur lors de la création de l\'événement');
@@ -344,6 +367,7 @@ const App: React.FC = () => {
           onLogout={handleLogout}
           checkIns={checkIns}
           addCheckIn={addCheckIn}
+          updateCheckInStatus={updateCheckInStatus}
           events={events}
           createEvent={createEvent}
           toggleEventAttendance={toggleEventAttendance}

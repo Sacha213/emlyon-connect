@@ -9,7 +9,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
   return (
-    <header className="bg-brand-bg/90 backdrop-blur-sm sticky top-0 z-40 p-4 flex justify-between items-center border-b border-brand-secondary">
+    <header className="bg-brand-bg/90 backdrop-blur-sm sticky top-0 z-[1000] p-4 flex justify-between items-center border-b border-brand-secondary">
       <div className="text-2xl font-bold text-brand-dark">
         <span className="font-black text-brand-emlyon uppercase tracking-wide">emlyon</span>
         <span className="font-light"> connect</span>

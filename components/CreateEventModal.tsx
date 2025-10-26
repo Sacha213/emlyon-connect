@@ -3,20 +3,23 @@ import { CloseIcon } from './icons';
 
 interface CreateEventModalProps {
   onClose: () => void;
-  onCreateEvent: (title: string, description: string, date: number) => void;
+  onCreateEvent: (title: string, description: string, date: number, category: string) => void;
 }
+
+const CATEGORIES = ['🍻 Soirée', '🍽️ Restaurant', '☕ Café', '🎭 Culture', '🏋️ Sport', '🎮 Gaming', '🎓 Études', '🎉 Autre'];
 
 const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreateEvent }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [category, setCategory] = useState(CATEGORIES[0]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (title && description && date && time) {
+    if (title && description && date && time && category) {
       const dateTime = new Date(`${date}T${time}`).getTime();
-      onCreateEvent(title, description, dateTime);
+      onCreateEvent(title, description, dateTime, category);
       onClose();
     }
   };
@@ -36,6 +39,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreateEv
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-brand-subtle mb-1">Description</label>
             <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required rows={3} className="w-full px-4 py-2 bg-brand-secondary border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-brand-emlyon transition"></textarea>
+          </div>
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-brand-subtle mb-1">Catégorie</label>
+            <select id="category" value={category} onChange={e => setCategory(e.target.value)} required className="w-full px-4 py-2 bg-brand-secondary border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-brand-emlyon transition">
+              {CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
           </div>
           <div className="flex gap-4">
             <div className="flex-1">

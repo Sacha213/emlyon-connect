@@ -5,15 +5,18 @@ import { PlusIcon, CheckIcon, CalendarIcon } from './icons';
 
 interface EventsViewProps {
   events: Event[];
-  createEvent: (title: string, description: string, date: number) => void;
+  createEvent: (title: string, description: string, date: number, category: string) => void;
   toggleEventAttendance: (eventId: string) => void;
   currentUser: User;
 }
 
 const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEventAttendance, currentUser }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  const sortedEvents = [...events].sort((a, b) => a.date - b.date);
+  const [showPastEvents, setShowPastEvents] = useState(false);
+
+  const now = Date.now();
+  const upcomingEvents = events.filter(e => e.date >= now).sort((a, b) => a.date - b.date);
+  const pastEvents = events.filter(e => e.date < now).sort((a, b) => b.date - a.date); // Les plus récents d'abord
 
   return (
     <div className="space-y-6">
@@ -27,18 +30,25 @@ const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEven
 
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Sorties à venir</h2>
-        {sortedEvents.length > 0 ? (
-          sortedEvents.map(event => {
+        {upcomingEvents.length > 0 ? (
+          upcomingEvents.map(event => {
             const isAttending = event.attendees.some(u => u.id === currentUser.id);
             const eventDate = new Date(event.date);
 
             return (
               <div key={event.id} className="bg-brand-light p-5 rounded-lg">
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-brand-dark">{event.title}</h3>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-xl font-bold text-brand-dark">{event.title}</h3>
+                      {event.category && (
+                        <span className="px-2 py-1 text-xs font-semibold bg-brand-emlyon/20 text-brand-emlyon rounded-full">
+                          {event.category}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-brand-subtle text-sm flex items-center gap-2 mt-1">
-                      <CalendarIcon className="w-4 h-4"/>
+                      <CalendarIcon className="w-4 h-4" />
                       {eventDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} à {eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -46,7 +56,7 @@ const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEven
                     onClick={() => toggleEventAttendance(event.id)}
                     className={`w-full sm:w-auto flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-2 ${isAttending ? 'bg-transparent border border-brand-subtle text-brand-subtle' : 'bg-brand-emlyon text-white hover:opacity-90'}`}
                   >
-                    {isAttending ? <><CheckIcon className="w-4 h-4"/> Je participe</> : "Participer"}
+                    {isAttending ? <><CheckIcon className="w-4 h-4" /> Je participe</> : "Participer"}
                   </button>
                 </div>
                 <p className="mt-4 text-brand-dark/80">{event.description}</p>
@@ -67,6 +77,61 @@ const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEven
           <p className="text-brand-subtle text-center py-12">Aucun événement prévu pour le moment. Proposez une sortie !</p>
         )}
       </div>
+
+      {/* Section événements passés */}
+      {pastEvents.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-brand-subtle">Événements passés ({pastEvents.length})</h2>
+            <button
+              onClick={() => setShowPastEvents(!showPastEvents)}
+              className="text-sm text-brand-emlyon hover:underline"
+            >
+              {showPastEvents ? 'Masquer' : 'Afficher'}
+            </button>
+          </div>
+
+          {showPastEvents && pastEvents.map(event => {
+            const isAttending = event.attendees.some(u => u.id === currentUser.id);
+            const eventDate = new Date(event.date);
+
+            return (
+              <div key={event.id} className="bg-brand-light/50 p-5 rounded-lg opacity-60">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-xl font-bold text-brand-dark">{event.title}</h3>
+                      {event.category && (
+                        <span className="px-2 py-1 text-xs font-semibold bg-brand-emlyon/20 text-brand-emlyon rounded-full">
+                          {event.category}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-brand-subtle text-sm flex items-center gap-2 mt-1">
+                      <CalendarIcon className="w-4 h-4" />
+                      {eventDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} à {eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className="w-full sm:w-auto flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md bg-brand-secondary text-brand-subtle text-center">
+                    Terminé
+                  </div>
+                </div>
+                <p className="mt-4 text-brand-dark/60">{event.description}</p>
+                <div className="mt-4 border-t border-brand-secondary pt-4">
+                  <p className="text-sm text-brand-subtle mb-2">Participants ({event.attendees.length}) :</p>
+                  <div className="flex flex-wrap gap-2">
+                    {event.attendees.map(attendee => (
+                      <div key={attendee.id} className="flex items-center" title={attendee.name}>
+                        <img src={attendee.avatarUrl} alt={attendee.name} className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-light" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {isModalOpen && (
         <CreateEventModal
