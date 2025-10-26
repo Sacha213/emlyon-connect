@@ -31,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
           <LogoutIcon className="w-6 h-6 text-brand-subtle" />
         </button>
       </div>
-  </header>
+    </header>
   );
 };
 

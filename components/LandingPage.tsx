@@ -9,7 +9,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onJoin }) => {
   return (
     <div className="min-h-screen w-full bg-brand-bg text-brand-dark flex flex-col">
       {/* Header */}
-      <header className="p-4 flex justify-between items-center">
+      <header
+        className="px-4 pb-4 flex justify-between items-center"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+      >
         <div className="text-2xl font-bold">
           <span className="font-black text-brand-emlyon uppercase tracking-wide">emlyon</span>
           <span className="font-light"> connect</span>
@@ -23,7 +26,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onJoin }) => {
       </header>
 
       {/* Hero Section */}
-      <main className="flex-grow flex flex-col items-center justify-center text-center px-4 py-20">
+  <main className="flex-grow flex flex-col items-center justify-center text-center px-4 py-20">
         <h1 className="text-4xl md:text-6xl font-black max-w-4xl leading-tight">
           La vie étudiante, connectée. Retrouvez-vous. Sortez. Partagez.
         </h1>

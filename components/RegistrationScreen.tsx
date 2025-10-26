@@ -75,8 +75,13 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister, onS
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-brand-bg p-4 relative">
-      <button onClick={onBack} className="absolute top-6 left-6 p-2 rounded-full text-brand-subtle hover:text-brand-dark hover:bg-brand-light transition-colors" title="Retour">
+    <div className="flex items-center justify-center min-h-screen bg-brand-bg p-4 relative" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+      <button
+        onClick={onBack}
+        className="absolute left-6 p-2 rounded-full text-brand-subtle hover:text-brand-dark hover:bg-brand-light transition-colors"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+        title="Retour"
+      >
         <ArrowLeftIcon className="w-6 h-6" />
       </button>
       <div className="w-full max-w-md p-8 space-y-8">

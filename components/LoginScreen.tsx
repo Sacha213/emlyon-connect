@@ -9,8 +9,8 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSwitchToRegister, onBack }) => {
-  const [email, setEmail] = useState('admin@emlyon.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -59,8 +59,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSwitchToRegister, 
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-brand-bg p-4 relative">
-      <button onClick={onBack} className="absolute top-6 left-6 p-2 rounded-full text-brand-subtle hover:text-brand-dark hover:bg-brand-light transition-colors" title="Retour">
+    <div className="flex items-center justify-center min-h-screen bg-brand-bg p-4 relative" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+      <button
+        onClick={onBack}
+        className="absolute left-6 p-2 rounded-full text-brand-subtle hover:text-brand-dark hover:bg-brand-light transition-colors"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+        title="Retour"
+      >
         <ArrowLeftIcon className="w-6 h-6" />
       </button>
 
