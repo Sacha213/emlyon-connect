@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { User, CheckIn, Event, Feedback, Notification } from './types';
 import LoginScreen from './components/LoginScreen';
 import RegistrationScreen from './components/RegistrationScreen';
 import Dashboard from './components/Dashboard';
 import NotificationComponent from './components/Notification';
 import LandingPage from './components/LandingPage';
-import { supabase } from './services/supabaseClient';
 import * as api from './services/api';
 import { notifyNewEvent, scheduleEventReminder } from './services/eventNotificationService';
 
@@ -47,6 +46,8 @@ const App: React.FC = () => {
   const [notification, setNotification] = useState<Notification | null>(null);
   const [appView, setAppView] = useState<'landing' | 'auth'>('landing');
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const [activeSection, setActiveSection] = useState<'presence' | 'events' | 'feedback' | 'profile'>('presence');
+  const hasFetchedOnceRef = useRef(false);
 
   // Note: Pas de useEffect ici pour éviter les boucles infinies
   // Les données sont chargées manuellement après login/register
@@ -100,27 +101,54 @@ const App: React.FC = () => {
     }
   }, [loadCheckIns, loadEvents, loadFeedbacks]);
 
-  // Polling : Recharger les données toutes les 5 secondes pour simuler le temps réel
-  // (Alternative à Realtime qui nécessite early access)
+  // Polling adaptatif : plus fréquent sur l'écran actif, ralenti en arrière-plan
   useEffect(() => {
     if (!currentUser) return;
 
-    // Charger immédiatement
-    loadCheckIns();
-    loadEvents();
-    loadFeedbacks();
+    const intervals: Array<ReturnType<typeof setInterval>> = [];
 
-    // Puis recharger toutes les 5 secondes
-    const intervalId = setInterval(() => {
-      loadCheckIns();
-      loadEvents();
-      loadFeedbacks();
-    }, 5000); // 5 secondes
+    const runIfVisible = (task: () => void) => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        return false;
+      }
+      task();
+      return true;
+    };
+
+    if (!hasFetchedOnceRef.current) {
+      const ran = runIfVisible(() => {
+        loadCheckIns();
+        loadEvents();
+        loadFeedbacks();
+      });
+      if (ran) {
+        hasFetchedOnceRef.current = true;
+      }
+    } else {
+      runIfVisible(() => {
+        if (activeSection === 'presence') {
+          loadCheckIns();
+        } else if (activeSection === 'events') {
+          loadEvents();
+        } else if (activeSection === 'feedback') {
+          loadFeedbacks();
+        }
+      });
+    }
+
+    const schedule = (task: () => void, delay: number) => {
+      const id = setInterval(() => runIfVisible(task), delay);
+      intervals.push(id);
+    };
+
+    schedule(loadCheckIns, activeSection === 'presence' ? 15000 : 90000);
+    schedule(loadEvents, activeSection === 'events' ? 45000 : 120000);
+    schedule(loadFeedbacks, activeSection === 'feedback' ? 60000 : 180000);
 
     return () => {
-      clearInterval(intervalId);
+      intervals.forEach(clearInterval);
     };
-  }, [currentUser, loadCheckIns, loadEvents, loadFeedbacks]);
+  }, [currentUser, activeSection, loadCheckIns, loadEvents, loadFeedbacks]);
 
   const handleLogin = () => {
     // L'utilisateur a déjà été sauvegardé dans localStorage par LoginScreen
@@ -163,6 +191,8 @@ const App: React.FC = () => {
     setCheckIns([]); // Réinitialiser les check-ins
     setEvents([]); // Réinitialiser les événements
     setAppView('landing');
+    hasFetchedOnceRef.current = false;
+    setActiveSection('presence');
     // Nettoyer le localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -382,6 +412,7 @@ const App: React.FC = () => {
           onCreateFeedback={handleCreateFeedback}
           onUpvoteFeedback={handleUpvoteFeedback}
           onAddComment={handleAddComment}
+          onActiveViewChange={setActiveSection}
         />
       );
     }

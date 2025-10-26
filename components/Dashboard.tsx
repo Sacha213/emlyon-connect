@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { User, CheckIn, Event, Feedback, AppView } from '../types';
 import Header from './Header';
 import PresenceView from './PresenceView';
@@ -23,12 +23,18 @@ interface DashboardProps {
   onCreateFeedback: (title: string, description: string, category: string) => void;
   onUpvoteFeedback: (feedbackId: string) => void;
   onAddComment: (feedbackId: string, content: string) => void;
+  onActiveViewChange: (view: AppView | 'profile') => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = (props) => {
   const [activeView, setActiveView] = useState<AppView>('presence');
   const [showProfile, setShowProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState(props.currentUser);
+  const { onActiveViewChange } = props;
+
+  useEffect(() => {
+    onActiveViewChange(showProfile ? 'profile' : activeView);
+  }, [activeView, showProfile, onActiveViewChange]);
 
   const handleAvatarUpdate = (newAvatarUrl: string) => {
     const updatedUser = { ...currentUser, avatarUrl: newAvatarUrl };
