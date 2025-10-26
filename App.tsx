@@ -7,6 +7,7 @@ import NotificationComponent from './components/Notification';
 import LandingPage from './components/LandingPage';
 import { supabase } from './services/supabaseClient';
 import * as api from './services/api';
+import { notifyNewEvent, scheduleEventReminder } from './services/eventNotificationService';
 
 // Données de démonstration pour la carte (remplacées par l'API au runtime)
 const MOCK_USERS: User[] = [
@@ -234,6 +235,9 @@ const App: React.FC = () => {
       // Recharger les événements depuis Supabase
       await loadEvents();
       showNotification(`Nouvel événement créé : ${title}`, 'info');
+      
+      // 🔔 Envoyer une notification push à tous les utilisateurs
+      await notifyNewEvent(event.id, title, new Date(date));
     } catch (error) {
       console.error('Erreur lors de la création de l\'événement:', error);
       showNotification('Erreur lors de la création de l\'événement', 'error');
@@ -264,6 +268,9 @@ const App: React.FC = () => {
         const success = await api.attendEvent(eventId, currentUser.id);
         if (success) {
           showNotification('Vous participez maintenant à cet événement !', 'success');
+          
+          // 🔔 Planifier un rappel 2h avant l'événement
+          await scheduleEventReminder(eventId, currentUser.id, event.title, new Date(event.date));
         }
       }
 

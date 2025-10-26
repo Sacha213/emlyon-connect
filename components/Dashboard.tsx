@@ -5,6 +5,7 @@ import PresenceView from './PresenceView';
 import EventsView from './EventsView';
 import FeedbackView from './FeedbackView';
 import { AvatarUpload } from './AvatarUpload';
+import { NotificationPrompt } from './NotificationPrompt';
 import { UsersIcon, CalendarIcon } from './icons';
 
 interface DashboardProps {
@@ -91,6 +92,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   <h3 className="text-xl font-semibold text-brand-dark">{currentUser.name}</h3>
                   <p className="text-gray-500">{currentUser.email}</p>
                 </div>
+              </div>
+              
+              {/* Section notifications push */}
+              <div className="mt-8">
+                <h3 className="text-lg font-bold text-brand-dark mb-4">Paramètres</h3>
+                <NotificationPrompt userId={currentUser.id} />
               </div>
             </div>
           ) : activeView === 'presence' ? (
