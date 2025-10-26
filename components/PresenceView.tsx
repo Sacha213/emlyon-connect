@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { CheckIn, User } from '../types';
-import { MapPinIcon } from './icons';
 import MapComponent from './MapComponent';
+import StatusPickerSheet from './StatusPickerSheet';
 
 interface PresenceViewProps {
   checkIns: CheckIn[];
@@ -12,6 +12,18 @@ interface PresenceViewProps {
 
 const STATUS_EMOJIS = ['🍻', '🍽️', '📚', '🏋️', '☕', '🎉', '🏠', '💼', '👻'];
 
+const STATUS_LABELS: Record<string, string> = {
+  '🍻': 'Soirée',
+  '🍽️': 'Restaurant',
+  '📚': 'Étude',
+  '🏋️': 'Sport',
+  '☕': 'Café',
+  '🎉': 'Fête',
+  '🏠': 'Maison',
+  '💼': 'Travail',
+  '👻': 'Mode Fantôme',
+};
+
 const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updateCheckInStatus, currentUser }) => {
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(() => {
     // Initialiser le statut depuis le localStorage
@@ -20,6 +32,7 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
   const [coords, setCoords] = useState<{ latitude: number, longitude: number } | null>(null);
   const [currentCheckInId, setCurrentCheckInId] = useState<string | null>(null);
   const [showStatusSelector, setShowStatusSelector] = useState(false);
+  const [showStatusSheet, setShowStatusSheet] = useState(false);
 
   // Utiliser useRef pour persister l'état même après démontage du composant
   const hasAutoCheckedInRef = useRef(false);
@@ -131,7 +144,10 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
     updateCheckInStatus(currentCheckInId, emoji);
     setSelectedEmoji(emoji);
     localStorage.setItem('lastStatus', emoji); // Sauvegarder le statut
+    setShowStatusSheet(false);
   };
+
+  const currentStatusLabel = selectedEmoji ? STATUS_LABELS[selectedEmoji] || '' : '';
 
   const timeSince = (date: number) => {
     const seconds = Math.floor((Date.now() - date) / 1000);
@@ -158,11 +174,12 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
             checkIns={filteredCheckIns}
             currentUserLocation={coords}
           />
+
         </div>
 
         {/* Sélecteur de statut à droite (1/3 de la largeur) */}
         {showStatusSelector && (
-          <div className="bg-brand-light rounded-lg p-4 flex flex-col justify-center">
+          <div className="hidden md:flex bg-brand-light rounded-lg p-4 flex-col justify-center">
             <h3 className="text-sm font-semibold text-brand-dark mb-3 text-center">
               Mon statut {selectedEmoji && `: ${selectedEmoji}`}
             </h3>
@@ -200,8 +217,33 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
         )}
       </div>
 
+      {showStatusSelector && (
+        <div className="md:hidden">
+          <button
+            onClick={() => setShowStatusSheet(true)}
+            className="fixed right-4 z-[1150] flex items-center gap-3 rounded-full bg-brand-dark/95 text-brand-bg shadow-2xl px-5 py-3 text-sm font-semibold ring-1 ring-white/10 backdrop-blur"
+            style={{ bottom: `calc(env(safe-area-inset-bottom) + 88px)` }}
+          >
+            <span className="text-xl" aria-hidden>{selectedEmoji || '📍'}</span>
+            <div className="text-left leading-tight">
+              <p className="text-xs uppercase tracking-wide text-brand-subtle">Mon statut</p>
+              <p>{currentStatusLabel || 'Choisir un statut'}</p>
+            </div>
+          </button>
+        </div>
+      )}
+
       {/* Liste des personnes actuellement dehors */}
       <div className="bg-brand-light rounded-lg overflow-hidden">
+
+        {showStatusSelector && showStatusSheet && (
+          <StatusPickerSheet
+            options={STATUS_EMOJIS}
+            selected={selectedEmoji}
+            onSelect={handleUpdateStatus}
+            onClose={() => setShowStatusSheet(false)}
+          />
+        )}
         <div className="p-4 border-b border-brand-secondary">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <span>👥</span>

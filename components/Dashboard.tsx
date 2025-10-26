@@ -6,6 +6,8 @@ import EventsView from './EventsView';
 import FeedbackView from './FeedbackView';
 import { AvatarUpload } from './AvatarUpload';
 import { NotificationPrompt } from './NotificationPrompt';
+import BottomNav from './BottomNav';
+import InstallPwaPrompt from './InstallPwaPrompt';
 import { UsersIcon, CalendarIcon } from './icons';
 
 interface DashboardProps {
@@ -38,9 +40,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header currentUser={currentUser} onLogout={props.onLogout} />
-      <main className="flex-grow p-4 sm:p-6 md:p-8">
+      <main className="flex-grow p-4 sm:p-6 md:p-8 pb-24">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
+          <InstallPwaPrompt />
+          <div className="mb-8 hidden md:block">
             <div className="flex space-x-8">
               <button
                 onClick={() => {
@@ -97,7 +100,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
               {/* Section notifications push */}
               <div className="mt-8">
                 <h3 className="text-lg font-bold text-brand-dark mb-4">Paramètres</h3>
-                <NotificationPrompt userId={currentUser.id} />
+                <NotificationPrompt userId={currentUser.id} autoPrompt={false} />
               </div>
             </div>
           ) : activeView === 'presence' ? (
@@ -125,6 +128,18 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           )}
         </div>
       </main>
+      {/* Mobile Bottom Navigation */}
+      <BottomNav
+        active={showProfile ? 'profile' : activeView}
+        onChange={(tab) => {
+          if (tab === 'profile') {
+            setShowProfile(true);
+          } else {
+            setShowProfile(false);
+            setActiveView(tab);
+          }
+        }}
+      />
     </div>
   );
 };
