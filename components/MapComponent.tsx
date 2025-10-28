@@ -4,12 +4,13 @@ import type { CheckIn } from '../types';
 interface MapComponentProps {
   checkIns: CheckIn[];
   currentUserLocation?: { latitude: number; longitude: number } | null;
+  onReady?: (actions: { recenter: () => void }) => void;
 }
 
 // Déclarer L pour éviter les erreurs TypeScript avec la bibliothèque Leaflet chargée globalement
 declare const L: any;
 
-const MapComponent: React.FC<MapComponentProps> = ({ checkIns, currentUserLocation }) => {
+const MapComponent: React.FC<MapComponentProps> = ({ checkIns, currentUserLocation, onReady }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const clusterGroup = useRef<any>(null);
@@ -62,6 +63,22 @@ const MapComponent: React.FC<MapComponentProps> = ({ checkIns, currentUserLocati
   }, [currentUserLocation]);
 
   useEffect(() => {
+    if (!mapInstance.current || !onReady) return;
+
+    const actions = {
+      recenter: () => {
+        if (!currentUserLocation) return;
+        mapInstance.current.setView([currentUserLocation.latitude, currentUserLocation.longitude], 15, {
+          animate: true,
+          duration: 0.75,
+        });
+      },
+    };
+
+    onReady(actions);
+  }, [currentUserLocation, onReady]);
+
+  useEffect(() => {
     if (!mapInstance.current || !clusterGroup.current) return;
 
     // Nettoyer les anciens marqueurs
@@ -70,17 +87,23 @@ const MapComponent: React.FC<MapComponentProps> = ({ checkIns, currentUserLocati
     const markers: any[] = [];
     // Ajouter les nouveaux marqueurs au groupe de clusters
     checkIns.forEach(checkIn => {
+      if (typeof checkIn.latitude !== 'number' || typeof checkIn.longitude !== 'number') {
+        return;
+      }
       const iconHTML = `
-        <div class="relative">
-            <img src="${checkIn.user.avatarUrl}" alt="${checkIn.user.name}" class="w-10 h-10 rounded-md object-cover border-2 border-brand-secondary shadow-lg">
+        <div class="marker-wrapper">
+          <div class="marker-avatar">
+            <img src="${checkIn.user.avatarUrl}" alt="${checkIn.user.name}" class="marker-avatar-img">
             ${checkIn.statusEmoji ? `<span class="marker-status-emoji">${checkIn.statusEmoji}</span>` : ''}
+          </div>
+          <span class="marker-name" title="${checkIn.user.name}">${checkIn.user.name}</span>
         </div>
       `;
       const icon = L.divIcon({
         html: iconHTML,
         className: 'bg-transparent border-none',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40], // Anchor at bottom center of the icon
+        iconSize: [56, 64],
+        iconAnchor: [28, 56], // Anchor bas-centre pour respecter le texte
       });
 
       const marker = L.marker([checkIn.latitude, checkIn.longitude], { icon });
@@ -153,20 +176,61 @@ const MapComponent: React.FC<MapComponentProps> = ({ checkIns, currentUserLocati
             line-height: 40px;
             text-align: center;
         }
+        .marker-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          transform: translateY(-4px);
+        }
+
+        .marker-avatar {
+          position: relative;
+          width: 44px;
+          height: 44px;
+        }
+
+        .marker-avatar-img {
+          width: 100%;
+          height: 100%;
+          border-radius: 12px;
+          object-fit: cover;
+          border: 2px solid #303030; /* brand-secondary */
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+        }
+
+        .marker-name {
+          display: inline-flex;
+          max-width: 72px;
+          padding: 2px 6px;
+          font-size: 10px;
+          line-height: 1.2;
+          font-weight: 600;
+          color: #FFFFFF;
+          background: rgba(17, 17, 17, 0.85);
+          border-radius: 9999px;
+          border: 1px solid rgba(255,255,255,0.12);
+          text-align: center;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+
         .marker-status-emoji {
-            position: absolute;
-            bottom: -5px;
-            right: -5px;
-            background-color: #212121; /* brand-light */
-            border: 1px solid #303030; /* brand-secondary */
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          position: absolute;
+          bottom: -4px;
+          right: -4px;
+          background-color: #212121; /* brand-light */
+          border: 1px solid #303030; /* brand-secondary */
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
       `}</style>
     </>

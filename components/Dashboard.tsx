@@ -8,143 +8,165 @@ import { AvatarUpload } from './AvatarUpload';
 import { NotificationPrompt } from './NotificationPrompt';
 import BottomNav from './BottomNav';
 import InstallPwaPrompt from './InstallPwaPrompt';
-import { UsersIcon, CalendarIcon } from './icons';
 
 interface DashboardProps {
   currentUser: User;
   onLogout: () => void;
   checkIns: CheckIn[];
-  addCheckIn: (locationName: string, coords: { latitude: number; longitude: number; }, statusEmoji: string | null) => Promise<string | null>;
+  addCheckIn: (
+    locationName: string,
+    coords: { latitude: number; longitude: number } | null,
+    statusEmoji: string | null,
+  ) => Promise<string | null>;
   updateCheckInStatus: (checkInId: string, statusEmoji: string) => void;
   events: Event[];
-  createEvent: (title: string, description: string, date: number) => void;
+  createEvent: (title: string, description: string, date: number, category: string) => void;
   toggleEventAttendance: (eventId: string) => void;
+  removeEvent: (eventId: string) => Promise<void>;
   feedbacks: Feedback[];
   onCreateFeedback: (title: string, description: string, category: string) => void;
   onUpvoteFeedback: (feedbackId: string) => void;
   onAddComment: (feedbackId: string, content: string) => void;
+  activeView: 'presence' | 'events' | 'feedback' | 'profile';
   onActiveViewChange: (view: AppView | 'profile') => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = (props) => {
-  const [activeView, setActiveView] = useState<AppView>('presence');
-  const [showProfile, setShowProfile] = useState(false);
-  const [currentUser, setCurrentUser] = useState(props.currentUser);
-  const { onActiveViewChange } = props;
+const Dashboard: React.FC<DashboardProps> = ({
+  currentUser: initialUser,
+  onLogout,
+  checkIns,
+  addCheckIn,
+  updateCheckInStatus,
+  events,
+  createEvent,
+  toggleEventAttendance,
+  removeEvent,
+  feedbacks,
+  onCreateFeedback,
+  onUpvoteFeedback,
+  onAddComment,
+  activeView,
+  onActiveViewChange,
+}) => {
+  const [currentUser, setCurrentUser] = useState(initialUser);
 
   useEffect(() => {
-    onActiveViewChange(showProfile ? 'profile' : activeView);
-  }, [activeView, showProfile, onActiveViewChange]);
+    setCurrentUser(initialUser);
+  }, [initialUser]);
+
+  const isProfile = activeView === 'profile';
 
   const handleAvatarUpdate = (newAvatarUrl: string) => {
     const updatedUser = { ...currentUser, avatarUrl: newAvatarUrl };
     setCurrentUser(updatedUser);
-    // Mettre à jour le localStorage pour persister la photo après reconnexion
     localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  const renderMainContent = () => {
+    if (isProfile) {
+      return (
+        <div className="rounded-2xl border border-brand-secondary/50 bg-brand-dark/90 p-8 shadow-xl backdrop-blur">
+          <h2 className="text-2xl font-bold text-brand-light mb-6 text-center">
+            Mon Profil
+          </h2>
+          <div className="flex flex-col items-center">
+            <AvatarUpload currentAvatar={currentUser.avatarUrl} onUploadSuccess={handleAvatarUpdate} />
+            <div className="mt-6 text-center">
+              <h3 className="text-xl font-semibold text-white">{currentUser.name}</h3>
+              <p className="text-sm text-brand-subtle">{currentUser.email}</p>
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold text-brand-light mb-4">Paramètres</h3>
+            <NotificationPrompt userId={currentUser.id} autoPrompt={false} />
+          </div>
+        </div>
+      );
+    }
+
+    if (activeView === 'events') {
+      return (
+        <EventsView
+          events={events}
+          createEvent={createEvent}
+          toggleEventAttendance={toggleEventAttendance}
+          removeEvent={removeEvent}
+          currentUser={currentUser}
+        />
+      );
+    }
+
+    if (activeView === 'feedback') {
+      return (
+        <FeedbackView
+          feedbacks={feedbacks}
+          currentUser={currentUser}
+          onCreateFeedback={onCreateFeedback}
+          onUpvoteFeedback={onUpvoteFeedback}
+          onAddComment={onAddComment}
+        />
+      );
+    }
+
+    return (
+      <PresenceView
+        checkIns={checkIns}
+        addCheckIn={addCheckIn}
+        updateCheckInStatus={updateCheckInStatus}
+        currentUser={currentUser}
+      />
+    );
   };
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header currentUser={currentUser} onLogout={props.onLogout} />
+      <Header
+        currentUser={currentUser}
+        onLogout={onLogout}
+        onProfileClick={() => onActiveViewChange('profile')}
+      />
+
       <main className="flex-grow p-4 sm:p-6 md:p-8 pb-24">
         <div className="max-w-4xl mx-auto">
           <InstallPwaPrompt />
+
           <div className="mb-8 hidden md:block">
             <div className="flex space-x-8">
               <button
-                onClick={() => {
-                  setActiveView('presence');
-                  setShowProfile(false);
-                }}
-                className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${activeView === 'presence' && !showProfile ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
+                onClick={() => onActiveViewChange('presence')}
+                className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${activeView === 'presence' ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
               >
                 Carte
               </button>
               <button
-                onClick={() => {
-                  setActiveView('events');
-                  setShowProfile(false);
-                }}
-                className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${activeView === 'events' && !showProfile ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
+                onClick={() => onActiveViewChange('events')}
+                className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${activeView === 'events' ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
               >
                 Événements
               </button>
               <button
-                onClick={() => {
-                  setActiveView('feedback');
-                  setShowProfile(false);
-                }}
-                className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${activeView === 'feedback' && !showProfile ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
+                onClick={() => onActiveViewChange('feedback')}
+                className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${activeView === 'feedback' ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
               >
                 💬 Feedback
               </button>
               <button
-                onClick={() => setShowProfile(true)}
-                className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${showProfile ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
+                onClick={() => onActiveViewChange('profile')}
+                className={`flex items-center justify-center gap-2 text-lg font-bold transition-colors ${isProfile ? 'text-brand-dark' : 'text-brand-subtle hover:text-brand-dark'}`}
               >
                 Mon Profil
               </button>
             </div>
           </div>
 
-          {showProfile ? (
-            <div className="bg-white rounded-lg shadow-md p-8">
-              <h2 className="text-2xl font-bold text-brand-dark mb-6 text-center">
-                Mon Profil
-              </h2>
-              <div className="flex flex-col items-center">
-                <AvatarUpload
-                  currentAvatar={currentUser.avatarUrl}
-                  onUploadSuccess={handleAvatarUpdate}
-                />
-                <div className="mt-6 text-center">
-                  <h3 className="text-xl font-semibold text-brand-dark">{currentUser.name}</h3>
-                  <p className="text-gray-500">{currentUser.email}</p>
-                </div>
-              </div>
-
-              {/* Section notifications push */}
-              <div className="mt-8">
-                <h3 className="text-lg font-bold text-brand-dark mb-4">Paramètres</h3>
-                <NotificationPrompt userId={currentUser.id} autoPrompt={false} />
-              </div>
-            </div>
-          ) : activeView === 'presence' ? (
-            <PresenceView
-              checkIns={props.checkIns}
-              addCheckIn={props.addCheckIn}
-              updateCheckInStatus={props.updateCheckInStatus}
-              currentUser={props.currentUser}
-            />
-          ) : activeView === 'events' ? (
-            <EventsView
-              events={props.events}
-              createEvent={props.createEvent}
-              toggleEventAttendance={props.toggleEventAttendance}
-              currentUser={props.currentUser}
-            />
-          ) : (
-            <FeedbackView
-              feedbacks={props.feedbacks}
-              currentUser={props.currentUser}
-              onCreateFeedback={props.onCreateFeedback}
-              onUpvoteFeedback={props.onUpvoteFeedback}
-              onAddComment={props.onAddComment}
-            />
-          )}
+          {renderMainContent()}
         </div>
       </main>
-      {/* Mobile Bottom Navigation */}
+
       <BottomNav
-        active={showProfile ? 'profile' : activeView}
-        onChange={(tab) => {
-          if (tab === 'profile') {
-            setShowProfile(true);
-          } else {
-            setShowProfile(false);
-            setActiveView(tab);
-          }
-        }}
+        active={isProfile ? 'profile' : activeView}
+        onChange={(tab) => onActiveViewChange(tab)}
       />
     </div>
   );

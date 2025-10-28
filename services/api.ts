@@ -42,8 +42,8 @@ export const getAllCheckIns = async (): Promise<CheckIn[]> => {
             id: checkIn.id,
             user: checkIn.user,
             locationName: checkIn.locationName,
-            latitude: checkIn.latitude,
-            longitude: checkIn.longitude,
+            latitude: typeof checkIn.latitude === 'number' ? checkIn.latitude : null,
+            longitude: typeof checkIn.longitude === 'number' ? checkIn.longitude : null,
             timestamp,
             statusEmoji: checkIn.statusEmoji
         };
@@ -53,7 +53,7 @@ export const getAllCheckIns = async (): Promise<CheckIn[]> => {
 export const createCheckIn = async (
     userId: string,
     locationName: string,
-    coords: { latitude: number; longitude: number },
+    coords: { latitude: number; longitude: number } | null,
     statusEmoji: string | null
 ): Promise<CheckIn | null> => {
     // 1. Supprimer les anciens check-ins de l'utilisateur
@@ -69,8 +69,8 @@ export const createCheckIn = async (
             id: generateUUID(),
             userId,
             locationName,
-            latitude: coords.latitude,
-            longitude: coords.longitude,
+            latitude: coords ? coords.latitude : null,
+            longitude: coords ? coords.longitude : null,
             statusEmoji
         })
         .select(`
@@ -93,8 +93,8 @@ export const createCheckIn = async (
         id: data.id,
         user: data.user,
         locationName: data.locationName,
-        latitude: data.latitude,
-        longitude: data.longitude,
+        latitude: typeof data.latitude === 'number' ? data.latitude : null,
+        longitude: typeof data.longitude === 'number' ? data.longitude : null,
         timestamp: new Date(data.createdAt).getTime(),
         statusEmoji: data.statusEmoji
     };

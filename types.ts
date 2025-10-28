@@ -9,8 +9,8 @@ export interface CheckIn {
   id: string;
   user: User;
   locationName: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   timestamp: number;
   statusEmoji?: string; // e.g., '🍻', '📚', '🏋️'
 }

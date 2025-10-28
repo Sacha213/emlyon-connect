@@ -46,7 +46,14 @@ const App: React.FC = () => {
   const [notification, setNotification] = useState<Notification | null>(null);
   const [appView, setAppView] = useState<'landing' | 'auth'>('landing');
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
-  const [activeSection, setActiveSection] = useState<'presence' | 'events' | 'feedback' | 'profile'>('presence');
+  const [activeSection, setActiveSection] = useState<'presence' | 'events' | 'feedback' | 'profile'>(() => {
+    if (typeof window === 'undefined') return 'presence';
+    const stored = localStorage.getItem('activeSection');
+    if (stored === 'presence' || stored === 'events' || stored === 'feedback' || stored === 'profile') {
+      return stored;
+    }
+    return 'presence';
+  });
   const hasFetchedOnceRef = useRef(false);
 
   // Note: Pas de useEffect ici pour éviter les boucles infinies
@@ -150,6 +157,13 @@ const App: React.FC = () => {
     };
   }, [currentUser, activeSection, loadCheckIns, loadEvents, loadFeedbacks]);
 
+  // Persister la section active pour conserver l'onglet courant
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('activeSection', activeSection);
+    }
+  }, [activeSection]);
+
   const handleLogin = () => {
     // L'utilisateur a déjà été sauvegardé dans localStorage par LoginScreen
     const savedUser = localStorage.getItem('user');
@@ -196,6 +210,7 @@ const App: React.FC = () => {
     // Nettoyer le localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('activeSection');
     showNotification('Vous avez été déconnecté', 'info');
   };
 
@@ -210,7 +225,7 @@ const App: React.FC = () => {
     }
   }, [notification]);
 
-  const addCheckIn = async (locationName: string, coords: { latitude: number; longitude: number; }, statusEmoji: string | null): Promise<string | null> => {
+  const addCheckIn = async (locationName: string, coords: { latitude: number; longitude: number; } | null, statusEmoji: string | null): Promise<string | null> => {
     if (!currentUser) return null;
 
     try {
@@ -222,7 +237,11 @@ const App: React.FC = () => {
 
       // Recharger les check-ins depuis Supabase
       await loadCheckIns();
-      showNotification(`Vous êtes maintenant localisé(e) à ${locationName}`, 'success');
+      if (coords) {
+        showNotification(`Vous êtes maintenant localisé(e) à ${locationName}`, 'success');
+      } else {
+        showNotification('Localisation indisponible pour le moment. Activez vos services de localisation pour apparaître sur la carte.', 'info');
+      }
 
       // Retourner l'ID du check-in créé
       return checkIn.id;
@@ -408,10 +427,12 @@ const App: React.FC = () => {
           events={events}
           createEvent={createEvent}
           toggleEventAttendance={toggleEventAttendance}
+          removeEvent={removeEvent}
           feedbacks={feedbacks}
           onCreateFeedback={handleCreateFeedback}
           onUpvoteFeedback={handleUpvoteFeedback}
           onAddComment={handleAddComment}
+          activeView={activeSection}
           onActiveViewChange={setActiveSection}
         />
       );

@@ -5,9 +5,10 @@ import { LogoutIcon } from './icons';
 interface HeaderProps {
   currentUser: User;
   onLogout: () => void;
+  onProfileClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onProfileClick }) => {
   return (
     <header
       className="bg-brand-bg sticky top-0 z-[1200] px-4 pb-4 flex justify-between items-center border-b border-brand-secondary shadow-lg"
@@ -21,12 +22,18 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
         <div className="text-right hidden sm:block">
           <p className="font-semibold text-brand-dark">{currentUser.name}</p>
         </div>
-        <img
-          key={currentUser.avatarUrl}
-          src={currentUser.avatarUrl}
-          alt={currentUser.name}
-          className="w-10 h-10 rounded-md object-cover ring-2 ring-brand-secondary"
-        />
+        <button
+          onClick={onProfileClick}
+          className="relative"
+          title="Mon profil"
+        >
+          <img
+            key={currentUser.avatarUrl}
+            src={currentUser.avatarUrl}
+            alt={currentUser.name}
+            className="w-10 h-10 rounded-md object-cover ring-2 ring-brand-secondary hover:ring-brand-emlyon transition-all"
+          />
+        </button>
         <button onClick={onLogout} className="p-2 rounded-full hover:bg-brand-light transition-colors" title="Déconnexion">
           <LogoutIcon className="w-6 h-6 text-brand-subtle" />
         </button>

@@ -5,7 +5,7 @@ import StatusPickerSheet from './StatusPickerSheet';
 
 interface PresenceViewProps {
   checkIns: CheckIn[];
-  addCheckIn: (locationName: string, coords: { latitude: number; longitude: number; }, statusEmoji: string | null) => Promise<string | null>;
+  addCheckIn: (locationName: string, coords: { latitude: number; longitude: number; } | null, statusEmoji: string | null) => Promise<string | null>;
   updateCheckInStatus: (checkInId: string, statusEmoji: string) => void;
   currentUser: User;
 }
@@ -36,6 +36,7 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
 
   // Utiliser useRef pour persister l'état même après démontage du composant
   const hasAutoCheckedInRef = useRef(false);
+  const mapActionsRef = useRef<{ recenter: () => void } | null>(null);
 
   // Filtrer automatiquement les check-ins pour ne montrer que la promotion de l'utilisateur
   // Si l'utilisateur n'a pas de promotion, afficher tous les check-ins
@@ -46,6 +47,59 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
       (c.statusEmoji !== '👻' || c.user.id === currentUser.id)
     )
     : checkIns.filter(c => c.statusEmoji !== '👻' || c.user.id === currentUser.id);
+
+  const resolveLocationName = async (
+    position: { latitude: number; longitude: number },
+    fallback: string,
+  ): Promise<string> => {
+    try {
+      const params = new URLSearchParams({
+        lat: position.latitude.toString(),
+        lon: position.longitude.toString(),
+        format: 'jsonv2',
+        zoom: '18',
+        'accept-language': 'fr',
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Reverse geocoding failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const address = data?.address ?? {};
+      const primaryName: string | undefined = data?.name;
+
+      const candidates = [
+        primaryName,
+        address.amenity,
+        address.shop,
+        address.leisure,
+        address.building,
+        address.attraction,
+        address.tourism,
+        address.road && address.house_number ? `${address.road} ${address.house_number}` : undefined,
+        address.road,
+        address.neighbourhood,
+        address.suburb,
+        address.city,
+        data?.display_name,
+      ].filter(Boolean) as string[];
+
+      const label = candidates.find(Boolean);
+      if (label) {
+        return label.length > 60 ? `${label.slice(0, 57)}…` : label;
+      }
+    } catch (error) {
+      console.warn('Impossible de déterminer un nom de lieu lisible:', error);
+    }
+
+    return fallback;
+  };
 
   // Effet pour synchroniser l'état local avec les check-ins chargés
   useEffect(() => {
@@ -59,7 +113,11 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
       setSelectedEmoji(newStatus);
       localStorage.setItem('lastStatus', newStatus); // Mettre à jour le localStorage
       setShowStatusSelector(true);
-      setCoords({ latitude: userCheckIn.latitude, longitude: userCheckIn.longitude });
+      if (typeof userCheckIn.latitude === 'number' && typeof userCheckIn.longitude === 'number') {
+        setCoords({ latitude: userCheckIn.latitude, longitude: userCheckIn.longitude });
+      } else {
+        setCoords(null);
+      }
     }
   }, [checkIns, currentUser.id, selectedEmoji]);
 
@@ -74,20 +132,20 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
     hasAutoCheckedInRef.current = true;
     console.log('🌍 Aucun check-in existant, tentative de création...');
 
-    const performAutoCheckIn = async (coords: { latitude: number; longitude: number }, locationName: string) => {
+    const performAutoCheckIn = async (coords: { latitude: number; longitude: number } | null, fallbackName: string) => {
       console.log('🚀 Création du check-in en cours...');
       // Utiliser le dernier statut connu ou '📚' par défaut
       const statusToSet = localStorage.getItem('lastStatus') || '📚';
-      await addCheckIn(locationName, coords, statusToSet);
+      const readableName = coords ? await resolveLocationName(coords, fallbackName) : fallbackName;
+      await addCheckIn(readableName, coords, statusToSet);
       // Pas besoin de mettre à jour l'état ici, l'effet de synchronisation le fera
       // quand le nouveau check-in arrivera avec le prochain polling.
-      console.log('✅ Commande de création de check-in envoyée avec le statut:', statusToSet);
+      console.log('✅ Check-in envoyé avec le statut:', statusToSet, 'et le lieu:', readableName);
     };
 
     if (!navigator.geolocation) {
-      console.error('❌ Géolocalisation non supportée, utilisation de la position par défaut.');
-      const defaultCoords = { latitude: 45.74168340731696, longitude: 4.838059171567862 };
-      performAutoCheckIn(defaultCoords, 'emlyon Business School');
+      console.error('❌ Géolocalisation non supportée, localisation indisponible.');
+      performAutoCheckIn(null, 'Localisation indisponible');
       return;
     }
 
@@ -109,13 +167,8 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
           POSITION_UNAVAILABLE: error.code === 2,
           TIMEOUT: error.code === 3
         });
-        console.log('📍 Utilisation de la position emlyon par défaut.');
-        const defaultCoords = {
-          latitude: 45.74168340731696,
-          longitude: 4.838059171567862
-        };
-        setCoords(defaultCoords); // Mettre à jour l'état local pour la position par défaut aussi
-        performAutoCheckIn(defaultCoords, 'emlyon Business School');
+        setCoords(null);
+        performAutoCheckIn(null, 'Localisation indisponible');
       },
       {
         enableHighAccuracy: true,  // Activé pour une meilleure précision
@@ -173,8 +226,19 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
           <MapComponent
             checkIns={filteredCheckIns}
             currentUserLocation={coords}
+            onReady={({ recenter }) => {
+              mapActionsRef.current = { recenter };
+            }}
           />
-
+          <button
+            type="button"
+            onClick={() => mapActionsRef.current?.recenter()}
+            disabled={!coords}
+            className="absolute right-4 bottom-4 z-[1100] rounded-full bg-brand-dark/90 p-3 text-brand-light shadow-2xl backdrop-blur-sm ring-1 ring-white/10 hover:bg-brand-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            aria-label="Recentrer sur ma position"
+          >
+            📍
+          </button>
         </div>
 
         {/* Sélecteur de statut à droite (1/3 de la largeur) */}

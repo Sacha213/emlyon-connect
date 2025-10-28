@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapIcon, CalendarIcon, ListBulletIcon, UsersIcon } from './icons';
+import { MapIcon, CalendarIcon, ListBulletIcon, UserIcon } from './icons';
 
 type Tab = 'presence' | 'events' | 'feedback' | 'profile';
 
@@ -46,7 +46,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, onChange }) => {
                     <ListBulletIcon className="w-6 h-6" />
                 </Item>
                 <Item active={active === 'profile'} label="Profil" onClick={() => onChange('profile')}>
-                    <UsersIcon className="w-6 h-6" />
+                    <UserIcon className="w-6 h-6" />
                 </Item>
             </div>
         </nav>

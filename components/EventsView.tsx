@@ -7,16 +7,25 @@ interface EventsViewProps {
   events: Event[];
   createEvent: (title: string, description: string, date: number, category: string) => void;
   toggleEventAttendance: (eventId: string) => void;
+  removeEvent: (eventId: string) => Promise<void>;
   currentUser: User;
 }
 
-const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEventAttendance, currentUser }) => {
+const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEventAttendance, removeEvent, currentUser }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
 
   const now = Date.now();
   const upcomingEvents = events.filter(e => e.date >= now).sort((a, b) => a.date - b.date);
   const pastEvents = events.filter(e => e.date < now).sort((a, b) => b.date - a.date); // Les plus récents d'abord
+
+  const confirmAndRemoveEvent = async (eventId: string) => {
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm('Supprimer cet événement ? Cette action est définitive.');
+      if (!confirmed) return;
+    }
+    await removeEvent(eventId);
+  };
 
   return (
     <div className="space-y-6">
@@ -33,6 +42,7 @@ const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEven
         {upcomingEvents.length > 0 ? (
           upcomingEvents.map(event => {
             const isAttending = event.attendees.some(u => u.id === currentUser.id);
+            const isCreator = event.creator.id === currentUser.id;
             const eventDate = new Date(event.date);
 
             return (
@@ -52,12 +62,22 @@ const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEven
                       {eventDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} à {eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <button
-                    onClick={() => toggleEventAttendance(event.id)}
-                    className={`w-full sm:w-auto flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-2 ${isAttending ? 'bg-transparent border border-brand-subtle text-brand-subtle' : 'bg-brand-emlyon text-white hover:opacity-90'}`}
-                  >
-                    {isAttending ? <><CheckIcon className="w-4 h-4" /> Je participe</> : "Participer"}
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => toggleEventAttendance(event.id)}
+                      className={`w-full sm:w-auto flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-2 ${isAttending ? 'bg-transparent border border-brand-subtle text-brand-subtle' : 'bg-brand-emlyon text-white hover:opacity-90'}`}
+                    >
+                      {isAttending ? <><CheckIcon className="w-4 h-4" /> Je participe</> : "Participer"}
+                    </button>
+                    {isCreator && (
+                      <button
+                        onClick={() => confirmAndRemoveEvent(event.id)}
+                        className="w-full sm:w-auto flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md border border-red-200 text-red-600 bg-white/70 hover:bg-white"
+                      >
+                        Supprimer
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p className="mt-4 text-brand-dark/80">{event.description}</p>
                 <div className="mt-4 border-t border-brand-secondary pt-4">
@@ -93,6 +113,7 @@ const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEven
 
           {showPastEvents && pastEvents.map(event => {
             const isAttending = event.attendees.some(u => u.id === currentUser.id);
+            const isCreator = event.creator.id === currentUser.id;
             const eventDate = new Date(event.date);
 
             return (
@@ -112,8 +133,18 @@ const EventsView: React.FC<EventsViewProps> = ({ events, createEvent, toggleEven
                       {eventDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} à {eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <div className="w-full sm:w-auto flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md bg-brand-secondary text-brand-subtle text-center">
-                    Terminé
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <div className="w-full sm:w-auto flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md bg-brand-secondary text-brand-subtle text-center">
+                      Terminé
+                    </div>
+                    {isCreator && (
+                      <button
+                        onClick={() => confirmAndRemoveEvent(event.id)}
+                        className="w-full sm:w-auto flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md border border-red-200 text-red-600 bg-white/80 hover:bg-white"
+                      >
+                        Supprimer
+                      </button>
+                    )}
                   </div>
                 </div>
                 <p className="mt-4 text-brand-dark/60">{event.description}</p>
