@@ -382,16 +382,29 @@ const App: React.FC = () => {
         return;
       }
 
-      // Recharger les événements depuis Supabase
-      await loadEvents();
-      api.broadcastNewEvent(event).catch(err => console.error('Erreur broadcast événement:', err));
-      showNotification(`Nouvel événement créé : ${title}`, 'info');
+      const asyncJobs: Promise<unknown>[] = [loadEvents()];
 
-      if (!event.pollOptions || event.pollOptions.length === 0) {
-        // 🔔 Envoyer une notification push à tous les utilisateurs uniquement si l'événement est daté
-        if (event.date) {
-          await notifyNewEvent(event.id, title, new Date(event.date));
-        }
+      asyncJobs.push(
+        api.broadcastNewEvent(event).catch(err => {
+          console.error('Erreur broadcast événement:', err);
+          throw new Error('broadcast');
+        })
+      );
+
+      if ((!event.pollOptions || event.pollOptions.length === 0) && event.date) {
+        asyncJobs.push(
+          notifyNewEvent(event.id, title, new Date(event.date)).catch(err => {
+            console.warn('Notification locale non envoyée:', err);
+          })
+        );
+      }
+
+      const results = await Promise.allSettled(asyncJobs);
+      const broadcastFailed = results.some(result => result.status === 'rejected' && result.reason instanceof Error && result.reason.message === 'broadcast');
+      if (broadcastFailed) {
+        showNotification('Événement créé, mais envoi des notifications impossible pour le moment.', 'error');
+      } else {
+        showNotification(`Nouvel événement créé : ${title}`, 'info');
       }
     } catch (error) {
       console.error('Erreur lors de la création de l\'événement:', error);

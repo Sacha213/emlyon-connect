@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string;
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
 
 /**
  * Convertit une clé VAPID en Uint8Array
@@ -43,6 +43,11 @@ export async function requestNotificationPermission(): Promise<boolean> {
  */
 export async function subscribeToPushNotifications(userId: string): Promise<boolean> {
     try {
+        if (!VAPID_PUBLIC_KEY) {
+            console.error('Aucune clé VAPID publique configurée. Vérifie VITE_VAPID_PUBLIC_KEY.');
+            return false;
+        }
+
         // Vérifier la permission
         const hasPermission = await requestNotificationPermission();
         if (!hasPermission) {
@@ -50,20 +55,25 @@ export async function subscribeToPushNotifications(userId: string): Promise<bool
             return false;
         }
 
-        // Enregistrer le Service Worker
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker enregistré:', registration);
+        // Récupérer ou enregistrer le Service Worker
+        let registration = await navigator.serviceWorker.getRegistration('/');
+        if (!registration) {
+            registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('Service Worker enregistré:', registration);
+        }
 
         // Attendre que le Service Worker soit prêt
-        await navigator.serviceWorker.ready;
+        const readyRegistration = await navigator.serviceWorker.ready;
+        registration = readyRegistration || registration;
 
         // Souscrire aux notifications push
-        const subscription = await registration.pushManager.subscribe({
+        const existingSubscription = await registration?.pushManager.getSubscription();
+        const subscription = existingSubscription ?? await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource
         });
 
-        console.log('Souscription push créée:', subscription);
+        console.log('Souscription push prête:', subscription);
 
         // Sauvegarder la souscription dans Supabase
         const { error } = await supabase
