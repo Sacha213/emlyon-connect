@@ -16,10 +16,11 @@ Transformation de l'application web en Progressive Web App (PWA) avec notificati
 5. **`services/eventNotificationService.ts`** - Notifications spécifiques aux événements
 6. **`components/NotificationPrompt.tsx`** - UI pour activer/désactiver les notifications
 7. **`supabase-migrations.sql`** - Script SQL pour créer la table PushSubscription
-8. **`supabase-edge-function-send-push-notification.ts`** - Edge Function pour envoi serveur
-9. **`.env.example`** - Template pour les variables d'environnement
-10. **`PWA_DEPLOYMENT_GUIDE.md`** - Guide complet de déploiement
-11. **`EDGE_FUNCTIONS_SETUP.md`** - Guide setup Edge Functions
+8. **`supabase/functions/broadcast-event/index.ts`** - Edge Function pour envoi serveur
+9. **`supabase/functions/broadcast-event/deno.json`** - Import map Deno pour la fonction
+10. **`.env.example`** - Template pour les variables d'environnement
+11. **`PWA_DEPLOYMENT_GUIDE.md`** - Guide complet de déploiement
+12. **`EDGE_FUNCTIONS_SETUP.md`** - Guide setup Edge Functions
 
 ### 🔄 Fichiers modifiés
 
@@ -137,10 +138,10 @@ ADD COLUMN category TEXT DEFAULT '🎉 Autre';
 5. **Déployer l'Edge Function**
    ```bash
    supabase link --project-ref TON_PROJECT_ID
-   supabase functions new send-push-notification
-   # Copie le contenu de supabase-edge-function-send-push-notification.ts
+   supabase secrets set VAPID_PUBLIC_KEY="..."
    supabase secrets set VAPID_PRIVATE_KEY="..."
-   supabase functions deploy send-push-notification
+   supabase secrets set VAPID_CONTACT_EMAIL="mailto:toi@em-lyon.com"
+   supabase functions deploy broadcast-event
    ```
 
 6. **Tester**
@@ -207,7 +208,7 @@ requireInteraction: true (reste affiché)
 - **Guide complet** : `PWA_DEPLOYMENT_GUIDE.md`
 - **Setup Edge Functions** : `EDGE_FUNCTIONS_SETUP.md`
 - **SQL Migration** : `supabase-migrations.sql`
-- **Edge Function code** : `supabase-edge-function-send-push-notification.ts`
+- **Edge Function code** : `supabase/functions/broadcast-event/index.ts`
 
 ---
 

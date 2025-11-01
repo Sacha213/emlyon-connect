@@ -22,7 +22,7 @@
 - ✅ Composant ajouté dans le profil utilisateur
 
 ### Phase 4 : Edge Functions ✅
-- ✅ Code Edge Function créé (`send-push-notification`)
+- ✅ Code Edge Function créé (`broadcast-event`)
 - ✅ Documentation de déploiement
 
 ---
@@ -99,23 +99,21 @@ supabase link --project-ref TON_PROJECT_ID
 ### 5. Créer et déployer l'Edge Function 📡
 
 ```bash
-# Créer la fonction
-supabase functions new send-push-notification
+# Générer la fonction (déjà présente dans le repo, mais garde la commande au cas où)
+supabase functions new broadcast-event
 
-# Le fichier sera créé dans: supabase/functions/send-push-notification/index.ts
-# Copie le contenu de supabase-edge-function-send-push-notification.ts dedans
-```
-
-Copie le contenu du fichier `supabase-edge-function-send-push-notification.ts` dans `supabase/functions/send-push-notification/index.ts`
-
-```bash
-# Définir les secrets
+# Définir les secrets requis
 supabase secrets set VAPID_PRIVATE_KEY="SKcwHLaF3ERLz_aEuSCDOdUDOZgTl6d2EZDV4gkgB_k"
 supabase secrets set VAPID_PUBLIC_KEY="BIHal8ULGn4aX67TZqRuVrjBN3FSp-CrpFKG-JooRaZLHw_QQomaTmXb_GevuH7KbwtJeHsKbIkfZa2_5dlhbIw"
+supabase secrets set VAPID_CONTACT_EMAIL="mailto:toi@em-lyon.com"
+# Service Role Key (récupère-la dans Supabase > Settings > API, ne jamais la exposer publiquement)
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="ton_service_role_key"
 
-# Déployer
-supabase functions deploy send-push-notification
+# Déployer la fonction
+supabase functions deploy broadcast-event
 ```
+
+> ℹ️ Le code de la fonction se trouve dans `supabase/functions/broadcast-event/index.ts`. Il se charge de récupérer toutes les souscriptions push et d’envoyer la notification via les clés VAPID.
 
 ### 6. Build et tester l'application 🏗️
 
@@ -258,7 +256,7 @@ npx gh-pages -d dist
 1. Vérifie que HTTPS est activé (obligatoire)
 2. Vérifie les permissions du navigateur
 3. Vérifie que l'Edge Function est déployée
-4. Vérifie les logs : `supabase functions logs send-push-notification`
+4. Vérifie les logs : `supabase functions logs broadcast-event`
 
 ### L'app ne s'installe pas
 1. Vérifie que le manifest.json est accessible

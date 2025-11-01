@@ -56,17 +56,14 @@ supabase login
 # Link projet (récupère ton PROJECT_ID sur Supabase Dashboard)
 supabase link --project-ref TON_PROJECT_ID
 
-# Créer la fonction
-supabase functions new send-push-notification
+# Déployer la fonction déjà présente dans le repo
+supabase functions deploy broadcast-event
 
-# Copie le code de supabase-edge-function-send-push-notification.ts
-# dans supabase/functions/send-push-notification/index.ts
-
-# Set secrets
+# Définir les secrets nécessaires (à lancer une seule fois)
+supabase secrets set VAPID_PUBLIC_KEY="BIHal8ULGn4aX67TZqRuVrjBN3FSp-CrpFKG-JooRaZLHw_QQomaTmXb_GevuH7KbwtJeHsKbIkfZa2_5dlhbIw"
 supabase secrets set VAPID_PRIVATE_KEY="SKcwHLaF3ERLz_aEuSCDOdUDOZgTl6d2EZDV4gkgB_k"
-
-# Deploy
-supabase functions deploy send-push-notification
+supabase secrets set VAPID_CONTACT_EMAIL="mailto:toi@em-lyon.com"
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="ton_service_role_key"
 ```
 
 ---

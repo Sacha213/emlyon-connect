@@ -384,6 +384,7 @@ const App: React.FC = () => {
 
       // Recharger les événements depuis Supabase
       await loadEvents();
+      api.broadcastNewEvent(event).catch(err => console.error('Erreur broadcast événement:', err));
       showNotification(`Nouvel événement créé : ${title}`, 'info');
 
       if (!event.pollOptions || event.pollOptions.length === 0) {

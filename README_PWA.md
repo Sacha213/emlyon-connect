@@ -147,7 +147,11 @@ emlyon-connect/
 
 4. **Déployer l'Edge Function** (10 min)
    - Installer Supabase CLI
-   - `supabase functions deploy send-push-notification`
+   - `supabase secrets set VAPID_PUBLIC_KEY="..."`
+   - `supabase secrets set VAPID_PRIVATE_KEY="..."`
+   - `supabase secrets set VAPID_CONTACT_EMAIL="mailto:toi@em-lyon.com"`
+   - `supabase secrets set SUPABASE_SERVICE_ROLE_KEY="ton_service_role_key"`
+   - `supabase functions deploy broadcast-event`
 
 ### 📖 Où commencer ?
 

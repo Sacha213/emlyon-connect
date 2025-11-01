@@ -360,6 +360,31 @@ export const deleteEvent = async (eventId: string): Promise<boolean> => {
     return true;
 };
 
+export const broadcastNewEvent = async (event: Pick<Event, 'id' | 'title' | 'description' | 'category' | 'date'>): Promise<boolean> => {
+    try {
+        const { error } = await supabase.functions.invoke('broadcast-event', {
+            body: {
+                event: {
+                    id: event.id,
+                    title: event.title,
+                    description: event.description ?? null,
+                    category: event.category ?? null,
+                    date: event.date ?? null
+                }
+            }
+        });
+
+        if (error) {
+            throw error;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Erreur lors de l\'envoi de la notification push:', error);
+        return false;
+    }
+};
+
 // ==================== USER ====================
 
 export const updateUserProfile = async (userId: string, updates: { name?: string; promotion?: string; avatarUrl?: string }): Promise<User | null> => {

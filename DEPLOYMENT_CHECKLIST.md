@@ -68,30 +68,22 @@
 
 ## 🔔 Phase 3 : Edge Function (15 min)
 
-- [ ] Créer la fonction
-  ```bash
-  supabase functions new send-push-notification
-  ```
-
-- [ ] Copier le code
-  - Ouvrir `supabase-edge-function-send-push-notification.ts`
-  - Copier tout le contenu
-  - Coller dans `supabase/functions/send-push-notification/index.ts`
-
 - [ ] Définir les secrets
   ```bash
-  supabase secrets set VAPID_PRIVATE_KEY="SKcwHLaF3ERLz_aEuSCDOdUDOZgTl6d2EZDV4gkgB_k"
   supabase secrets set VAPID_PUBLIC_KEY="BIHal8ULGn4aX67TZqRuVrjBN3FSp-CrpFKG-JooRaZLHw_QQomaTmXb_GevuH7KbwtJeHsKbIkfZa2_5dlhbIw"
+  supabase secrets set VAPID_PRIVATE_KEY="SKcwHLaF3ERLz_aEuSCDOdUDOZgTl6d2EZDV4gkgB_k"
+  supabase secrets set VAPID_CONTACT_EMAIL="mailto:toi@em-lyon.com"
+  supabase secrets set SUPABASE_SERVICE_ROLE_KEY="ton_service_role_key"
   ```
 
 - [ ] Déployer
   ```bash
-  supabase functions deploy send-push-notification
+  supabase functions deploy broadcast-event
   ```
 
 - [ ] Vérifier le déploiement
   - Supabase Dashboard > Edge Functions
-  - Voir `send-push-notification` listée
+  - Voir `broadcast-event` listée
 
 ---
 
