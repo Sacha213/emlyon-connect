@@ -64,6 +64,30 @@ USING (auth.uid()::text = user_id);
 ALTER TABLE "Event" 
 ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '🎉 Autre';
 
+-- 8. Ajouter les colonnes pour les sondages d'événements
+ALTER TABLE "Event"
+  ALTER COLUMN date DROP NOT NULL;
+
+ALTER TABLE "Event"
+  ADD COLUMN IF NOT EXISTS "pollType" TEXT;
+
+ALTER TABLE "Event"
+  ADD COLUMN IF NOT EXISTS "pollOptions" JSONB DEFAULT '[]'::jsonb;
+
+ALTER TABLE "Event"
+  ADD COLUMN IF NOT EXISTS "selectedPollOptionId" TEXT;
+
+ALTER TABLE "Event"
+  ADD COLUMN IF NOT EXISTS "pollClosesAt" TIMESTAMP WITH TIME ZONE;
+
+DO $$
+BEGIN
+  ALTER TABLE "Event"
+    ADD CONSTRAINT event_poll_type_check CHECK ("pollType" IN ('date', 'location') OR "pollType" IS NULL);
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
 -- ==========================================
 -- INSTRUCTIONS D'EXÉCUTION
 -- ==========================================

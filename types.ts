@@ -19,10 +19,22 @@ export interface Event {
   id: string;
   title: string;
   description: string;
-  date: number;
+  date: number | null;
   creator: User;
   attendees: User[];
   category?: string; // Catégorie de l'événement (Soirée, Sport, Culture, etc.)
+  pollType?: 'date' | 'location';
+  pollOptions?: EventPollOption[];
+  selectedPollOptionId?: string | null;
+  pollClosesAt?: number | null;
+}
+
+export interface EventPollOption {
+  id: string;
+  label: string;
+  votes: string[];
+  date?: number | null;
+  location?: string | null;
 }
 
 export interface Feedback {

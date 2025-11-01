@@ -20,9 +20,18 @@ interface DashboardProps {
   ) => Promise<string | null>;
   updateCheckInStatus: (checkInId: string, statusEmoji: string) => void;
   events: Event[];
-  createEvent: (title: string, description: string, date: number, category: string) => void;
+  createEvent: (payload: {
+    title: string;
+    description: string;
+    date: number | null;
+    category: string;
+    pollOptions?: Event['pollOptions'];
+    pollType?: Event['pollType'];
+    pollClosesAt?: number | null;
+  }) => void;
   toggleEventAttendance: (eventId: string) => void;
   removeEvent: (eventId: string) => Promise<void>;
+  voteOnPollOption: (eventId: string, optionId: string) => void;
   feedbacks: Feedback[];
   onCreateFeedback: (title: string, description: string, category: string) => void;
   onUpvoteFeedback: (feedbackId: string) => void;
@@ -41,6 +50,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   createEvent,
   toggleEventAttendance,
   removeEvent,
+  voteOnPollOption,
   feedbacks,
   onCreateFeedback,
   onUpvoteFeedback,
@@ -92,6 +102,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           createEvent={createEvent}
           toggleEventAttendance={toggleEventAttendance}
           removeEvent={removeEvent}
+          voteOnPollOption={voteOnPollOption}
           currentUser={currentUser}
         />
       );

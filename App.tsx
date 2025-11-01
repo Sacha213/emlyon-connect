@@ -352,25 +352,53 @@ const App: React.FC = () => {
     }
   };
 
-  const createEvent = async (title: string, description: string, date: number, category: string) => {
+  interface CreateEventPayload {
+    title: string;
+    description: string;
+    date: number | null;
+    category: string;
+    pollOptions?: Event['pollOptions'];
+    pollType?: Event['pollType'];
+    pollClosesAt?: number | null;
+  }
+
+  const createEvent = async ({ title, description, date, category, pollOptions, pollType, pollClosesAt }: CreateEventPayload) => {
     if (!currentUser) return;
 
     try {
-      const event = await api.createEvent(currentUser.id, title, description, date, category);
+      const event = await api.createEvent(
+        currentUser.id,
+        title,
+        description,
+        date,
+        category,
+        pollOptions || null,
+        pollType ?? null,
+        pollClosesAt ?? null
+      );
 
       if (!event) {
-        throw new Error('Erreur lors de la création de l\'événement');
+        showNotification('Impossible de créer l\'événement pour le moment', 'error');
+        return;
       }
 
       // Recharger les événements depuis Supabase
       await loadEvents();
       showNotification(`Nouvel événement créé : ${title}`, 'info');
 
-      // 🔔 Envoyer une notification push à tous les utilisateurs
-      await notifyNewEvent(event.id, title, new Date(date));
+      if (!event.pollOptions || event.pollOptions.length === 0) {
+        // 🔔 Envoyer une notification push à tous les utilisateurs uniquement si l'événement est daté
+        if (event.date) {
+          await notifyNewEvent(event.id, title, new Date(event.date));
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la création de l\'événement:', error);
-      showNotification('Erreur lors de la création de l\'événement', 'error');
+      if (error instanceof Error && (error as any).code === 'MISSING_POLL_COLUMNS') {
+        showNotification('Active les sondages en ajoutant les nouvelles colonnes dans Supabase (voir README)', 'error');
+      } else {
+        showNotification('Erreur lors de la création de l\'événement', 'error');
+      }
     }
   };
 
@@ -397,14 +425,18 @@ const App: React.FC = () => {
         // S'inscrire
         const success = await api.attendEvent(eventId, currentUser.id);
         if (success) {
-          exportEventToCalendar(event);
-          showNotification('Participation confirmée ! L’événement a été ajouté à votre calendrier 📅', 'success');
+          if (event.date) {
+            exportEventToCalendar(event);
+            showNotification('Participation confirmée ! L’événement a été ajouté à votre calendrier 📅', 'success');
 
-          try {
-            // 🔔 Planifier un rappel 2h avant l'événement
-            await scheduleEventReminder(eventId, currentUser.id, event.title, new Date(event.date));
-          } catch (reminderError) {
-            console.error('Erreur lors de la planification du rappel:', reminderError);
+            try {
+              // 🔔 Planifier un rappel 2h avant l'événement
+              await scheduleEventReminder(eventId, currentUser.id, event.title, new Date(event.date));
+            } catch (reminderError) {
+              console.error('Erreur lors de la planification du rappel:', reminderError);
+            }
+          } else {
+            showNotification('Participation confirmée ! Tu seras notifié quand la date sera fixée.', 'info');
           }
         }
       }
@@ -414,6 +446,24 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Erreur lors de la gestion de la participation:', error);
       showNotification('Erreur lors de la gestion de la participation', 'error');
+    }
+  };
+
+  const voteOnEventPollOption = async (eventId: string, optionId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const success = await api.voteEventPollOption(eventId, optionId, currentUser.id);
+
+      if (!success) {
+        throw new Error('Vote non pris en compte');
+      }
+
+      await loadEvents();
+      showNotification('Ton vote a été enregistré ✅', 'success');
+    } catch (error) {
+      console.error('Erreur lors du vote pour le sondage:', error);
+      showNotification('Erreur lors de l\'enregistrement du vote', 'error');
     }
   };
 
@@ -514,6 +564,7 @@ const App: React.FC = () => {
           createEvent={createEvent}
           toggleEventAttendance={toggleEventAttendance}
           removeEvent={removeEvent}
+          voteOnPollOption={voteOnEventPollOption}
           feedbacks={feedbacks}
           onCreateFeedback={handleCreateFeedback}
           onUpvoteFeedback={handleUpvoteFeedback}

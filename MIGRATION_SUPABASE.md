@@ -48,6 +48,17 @@
 
 1. ✅ Bucket `avatars` créé en mode public
 
+### 3. Ajouter les colonnes de sondage pour les événements (⚠️ À faire si ce n'est pas déjà le cas)
+
+Dans le SQL Editor de Supabase, exécute le bloc « Ajouter les colonnes pour les sondages d'événements » présent dans `supabase-migrations.sql`.
+
+Ce bloc :
+- Rend `Event.date` nullable (pour les événements en attente de vote)
+- Ajoute `pollType`, `pollOptions`, `pollClosesAt` et `selectedPollOptionId`
+- Crée une contrainte de vérification pour `pollType`
+
+> Sans ces colonnes, la création d'un événement avec sondage renverra une erreur côté application.
+
 ### 3. Configurer Row Level Security (RECOMMANDÉ pour la production)
 
 **IMPORTANT : D'abord, supprimer la colonne password de la table User**
