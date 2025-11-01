@@ -225,6 +225,87 @@ const App: React.FC = () => {
     }
   }, [notification]);
 
+  const exportEventToCalendar = useCallback((event: Event) => {
+    if (typeof window === 'undefined') return;
+
+    const escapeIcsText = (text: string) =>
+      text
+        .replace(/\\/g, '\\\\')
+        .replace(/;/g, '\\;')
+        .replace(/,/g, '\\,')
+        .replace(/\r?\n/g, '\\n');
+
+    const pad = (value: number) => value.toString().padStart(2, '0');
+    const toUtcDate = (date: Date) =>
+      `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`;
+
+    const startDate = new Date(event.date);
+    const endDate = new Date(event.date + 2 * 60 * 60 * 1000); // Durée par défaut : 2h
+    const dtStamp = toUtcDate(new Date());
+    const dtStart = toUtcDate(startDate);
+    const dtEnd = toUtcDate(endDate);
+
+    const summary = escapeIcsText(event.title);
+    const description = escapeIcsText(event.description || '');
+
+    const userAgent = navigator.userAgent || '';
+    const isIOS = /iP(hone|od|ad)/i.test(userAgent);
+    const isAndroid = /Android/i.test(userAgent);
+
+    if (isAndroid) {
+      const googleUrl = new URL('https://calendar.google.com/calendar/render');
+      googleUrl.searchParams.set('action', 'TEMPLATE');
+      googleUrl.searchParams.set('text', event.title);
+      if (event.description) {
+        googleUrl.searchParams.set('details', event.description);
+      }
+      googleUrl.searchParams.set('dates', `${dtStart}/${dtEnd}`);
+
+      const opened = window.open(googleUrl.toString(), '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        console.warn('Impossible d\'ouvrir Google Calendar, téléchargement ICS en secours.');
+      } else {
+        return;
+      }
+    }
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//emlyon connect//FR',
+      'CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      `UID:${event.id}@emlyon-connect`,
+      `SUMMARY:${summary}`,
+      `DESCRIPTION:${description}`,
+      `DTSTAMP:${dtStamp}`,
+      `DTSTART:${dtStart}`,
+      `DTEND:${dtEnd}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const slug = event.title
+      ? event.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
+      : 'evenement';
+
+    if (isIOS) {
+      window.location.assign(url);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${slug || 'evenement'}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, []);
+
   const addCheckIn = async (locationName: string, coords: { latitude: number; longitude: number; } | null, statusEmoji: string | null): Promise<string | null> => {
     if (!currentUser) return null;
 
@@ -316,10 +397,15 @@ const App: React.FC = () => {
         // S'inscrire
         const success = await api.attendEvent(eventId, currentUser.id);
         if (success) {
-          showNotification('Vous participez maintenant à cet événement !', 'success');
+          exportEventToCalendar(event);
+          showNotification('Participation confirmée ! L’événement a été ajouté à votre calendrier 📅', 'success');
 
-          // 🔔 Planifier un rappel 2h avant l'événement
-          await scheduleEventReminder(eventId, currentUser.id, event.title, new Date(event.date));
+          try {
+            // 🔔 Planifier un rappel 2h avant l'événement
+            await scheduleEventReminder(eventId, currentUser.id, event.title, new Date(event.date));
+          } catch (reminderError) {
+            console.error('Erreur lors de la planification du rappel:', reminderError);
+          }
         }
       }
 
