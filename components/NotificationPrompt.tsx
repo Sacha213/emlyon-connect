@@ -3,7 +3,8 @@ import {
     subscribeToPushNotifications,
     unsubscribeFromPushNotifications,
     isSubscribedToPush,
-    sendTestNotification
+    sendTestNotification,
+    type SubscribeToPushResult
 } from '../services/notificationService';
 
 interface NotificationPromptProps {
@@ -12,6 +13,7 @@ interface NotificationPromptProps {
 }
 
 type PermissionState = NotificationPermission | 'unsupported';
+type SubscribeToPushFailure = Extract<SubscribeToPushResult, { ok: false }>;
 
 export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId, autoPrompt = true }) => {
     const [isSubscribed, setIsSubscribed] = useState(false);
@@ -74,8 +76,9 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId, 
 
     const handleSubscribe = async () => {
         setIsLoading(true);
-        const success = await subscribeToPushNotifications(userId);
-        if (success) {
+        const result = await subscribeToPushNotifications(userId);
+
+        if (result.ok) {
             setIsSubscribed(true);
             setShowPrompt(false);
             setPermissionState('granted');
@@ -83,15 +86,7 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId, 
             // Envoyer une notification de test
             await sendTestNotification();
         } else {
-            const permission = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default';
-            setPermissionState(permission === 'default' ? 'default' : permission || 'unsupported');
-            if (permission === 'denied') {
-                setStatusMessage('Permission refusée. Ouvre les réglages du navigateur pour les autoriser.');
-            } else if (permissionState === 'unsupported') {
-                setStatusMessage('Notifications push non supportées sur cet appareil.');
-            } else {
-                setStatusMessage('Impossible d’activer les notifications. Réessaie plus tard.');
-            }
+            await applyFailureFeedback(result as SubscribeToPushFailure);
         }
         setIsLoading(false);
     };
@@ -105,6 +100,42 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId, 
             setPermissionState(Notification.permission);
         }
         setIsLoading(false);
+    };
+
+    const applyFailureFeedback = async (result: SubscribeToPushFailure) => {
+        const permission = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default';
+
+        switch (result.reason) {
+            case 'unsupported':
+                setPermissionState('unsupported');
+                setStatusMessage('Notifications push non supportées sur cet appareil.');
+                break;
+            case 'permission-denied':
+                setPermissionState('denied');
+                setStatusMessage('Autorise les notifications depuis les réglages de ton navigateur/appareil.');
+                break;
+            case 'ios-settings':
+                setPermissionState(permission === 'granted' ? 'granted' : 'default');
+                setStatusMessage('Active les notifications dans Réglages > Notifications > emlyon connect.');
+                break;
+            case 'push-unavailable':
+                setPermissionState('unsupported');
+                setStatusMessage('Le service push est indisponible sur ce navigateur. Utilise Safari ≥16.4 en PWA.');
+                break;
+            case 'service-worker-unavailable':
+                setPermissionState(permission === 'granted' ? 'granted' : 'default');
+                setStatusMessage('Service Worker indisponible. Ferme et rouvre l’app puis réessaie.');
+                break;
+            case 'storage-error':
+                setPermissionState('granted');
+                setStatusMessage('Souscription créée, mais serveur indisponible. Réessaie plus tard.');
+                break;
+            case 'unknown':
+            default:
+                setPermissionState(permission === 'default' ? 'default' : (permission as NotificationPermission));
+                setStatusMessage('Impossible d’activer les notifications. Réessaie plus tard.');
+                break;
+        }
     };
 
     const handleDismiss = () => {
