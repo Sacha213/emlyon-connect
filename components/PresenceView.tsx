@@ -234,7 +234,7 @@ const PresenceView: React.FC<PresenceViewProps> = ({ checkIns, addCheckIn, updat
             type="button"
             onClick={() => mapActionsRef.current?.recenter()}
             disabled={!coords}
-            className="absolute right-4 bottom-4 z-[1100] rounded-full bg-brand-dark/90 p-3 text-brand-light shadow-2xl backdrop-blur-sm ring-1 ring-white/10 hover:bg-brand-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="absolute left-4 bottom-4 z-[1100] rounded-full bg-brand-dark/90 p-3 text-brand-light shadow-2xl backdrop-blur-sm ring-1 ring-white/10 hover:bg-brand-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             aria-label="Recentrer sur ma position"
           >
             📍
