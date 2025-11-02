@@ -118,10 +118,10 @@ self.addEventListener('push', (event) => {
 // Écouter les clics sur les notifications
 self.addEventListener('notificationclick', (event) => {
     console.log('[SW] 🖱️ Click sur notification:', event.notification.tag);
-    
+
     event.notification.close();
 
-    const urlToOpen = event.notification.data?.url 
+    const urlToOpen = event.notification.data?.url
         ? new URL(event.notification.data.url, self.location.origin).href
         : self.location.origin;
 
@@ -131,7 +131,7 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
             console.log('[SW] 🖱️ Clients ouverts:', clientList.length);
-            
+
             // Chercher une fenêtre déjà ouverte avec l'app
             for (let client of clientList) {
                 if (client.url.startsWith(self.location.origin) && 'focus' in client) {
@@ -145,7 +145,7 @@ self.addEventListener('notificationclick', (event) => {
                     });
                 }
             }
-            
+
             // Sinon, ouvrir une nouvelle fenêtre
             if (clients.openWindow) {
                 console.log('[SW] 🖱️ Ouverture nouvelle fenêtre');
