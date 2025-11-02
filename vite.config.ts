@@ -39,6 +39,10 @@ export default defineConfig(({ mode }) => {
             }
           ]
         },
+        // Importer notre service worker personnalisé au lieu d'en générer un
+        strategies: 'injectManifest',
+        srcDir: 'public',
+        filename: 'sw.js',
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
           runtimeCaching: [

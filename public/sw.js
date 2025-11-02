@@ -1,31 +1,56 @@
 /* eslint-disable no-undef */
-// Service Worker pour emlyon Connect PWA
+// Service Worker pour emlyon Connect PWA avec Workbox
 
-const CACHE_NAME = 'emlyon-connect-v1';
-const RUNTIME_CACHE = 'emlyon-runtime';
+import { precacheAndRoute } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { CacheFirst, NetworkFirst } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
+import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
-// Écouter l'événement d'installation
+// Précache des assets (injecté par Vite PWA)
+precacheAndRoute(self.__WB_MANIFEST);
+
+// Cache des tuiles OpenStreetMap
+registerRoute(
+    /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
+    new CacheFirst({
+        cacheName: 'osm-tiles',
+        plugins: [
+            new ExpirationPlugin({
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 jours
+            }),
+            new CacheableResponsePlugin({
+                statuses: [0, 200]
+            })
+        ]
+    })
+);
+
+// Cache Supabase API
+registerRoute(
+    /^https:\/\/.*\.supabase\.co\/.*/i,
+    new NetworkFirst({
+        cacheName: 'supabase-api',
+        networkTimeoutSeconds: 10,
+        plugins: [
+            new ExpirationPlugin({
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 5 // 5 minutes
+            })
+        ]
+    })
+);
+
+// Activation immédiate
 self.addEventListener('install', (event) => {
     console.log('[SW] Installation...');
-    self.skipWaiting(); // Active immédiatement le nouveau SW
+    self.skipWaiting();
 });
 
-// Écouter l'événement d'activation
 self.addEventListener('activate', (event) => {
     console.log('[SW] Activation...');
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
-                        console.log('[SW] Suppression ancien cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
-    );
-    return self.clients.claim(); // Prend le contrôle immédiatement
+    event.waitUntil(self.clients.claim());
 });
 
 // Écouter les notifications push
