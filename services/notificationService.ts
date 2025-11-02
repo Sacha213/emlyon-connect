@@ -168,7 +168,7 @@ export async function subscribeToPushNotifications(userId: string): Promise<Subs
                 auth: json.keys?.auth ?? null
             }
         }, {
-            onConflict: 'user_id'
+            onConflict: 'endpoint'
         });
 
     if (error) {
