@@ -30,7 +30,9 @@ self.addEventListener('activate', (event) => {
 
 // Écouter les notifications push
 self.addEventListener('push', (event) => {
-    console.log('[SW] Push notification reçue:', event);
+    console.log('[SW] 🔔 Push notification reçue!', event);
+    console.log('[SW] 🔔 Event data:', event.data);
+    console.log('[SW] 🔔 Has data:', !!event.data);
 
     let notificationData = {
         title: 'emlyon Connect',
@@ -45,16 +47,28 @@ self.addEventListener('push', (event) => {
     // Parser les données si disponibles
     if (event.data) {
         try {
+            console.log('[SW] 🔔 Parsing JSON...');
             const payload = event.data.json();
+            console.log('[SW] 🔔 Payload parsé:', payload);
             notificationData = {
                 ...notificationData,
                 ...payload
             };
         } catch (e) {
-            console.error('[SW] Erreur parsing notification:', e);
-            notificationData.body = event.data.text();
+            console.error('[SW] ❌ Erreur parsing notification:', e);
+            try {
+                const text = event.data.text();
+                console.log('[SW] 🔔 Payload text:', text);
+                notificationData.body = text;
+            } catch (e2) {
+                console.error('[SW] ❌ Erreur text():', e2);
+            }
         }
+    } else {
+        console.log('[SW] ⚠️ Pas de data dans le push event');
     }
+    
+    console.log('[SW] 🔔 Affichage notification:', notificationData);
 
     event.waitUntil(
         self.registration.showNotification(notificationData.title, {
