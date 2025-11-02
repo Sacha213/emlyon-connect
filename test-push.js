@@ -9,17 +9,17 @@ console.log('✅ User:', user?.id, user?.name);
 
 // 2. Vérifier la souscription locale
 (async () => {
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    console.log('✅ Local subscription:', sub ? 'OUI' : 'NON');
-    if (sub) {
-      console.log('  Endpoint:', sub.endpoint);
-      console.log('  Type:', sub.endpoint.includes('apple.com') ? 'Apple' : sub.endpoint.includes('google.com') ? 'Google' : 'Autre');
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        console.log('✅ Local subscription:', sub ? 'OUI' : 'NON');
+        if (sub) {
+            console.log('  Endpoint:', sub.endpoint);
+            console.log('  Type:', sub.endpoint.includes('apple.com') ? 'Apple' : sub.endpoint.includes('google.com') ? 'Google' : 'Autre');
+        }
+    } catch (e) {
+        console.error('❌ Erreur subscription locale:', e);
     }
-  } catch (e) {
-    console.error('❌ Erreur subscription locale:', e);
-  }
 })();
 
 // 3. Instructions pour tester

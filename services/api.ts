@@ -362,7 +362,8 @@ export const deleteEvent = async (eventId: string): Promise<boolean> => {
 
 export const broadcastNewEvent = async (event: Pick<Event, 'id' | 'title' | 'description' | 'category' | 'date'>): Promise<boolean> => {
     try {
-        const { error } = await supabase.functions.invoke('broadcast-event', {
+        console.log('🔔 [DEBUG] Appel broadcast-event pour:', event.id);
+        const { data, error } = await supabase.functions.invoke('broadcast-event', {
             body: {
                 event: {
                     id: event.id,
@@ -375,12 +376,15 @@ export const broadcastNewEvent = async (event: Pick<Event, 'id' | 'title' | 'des
         });
 
         if (error) {
+            console.error('❌ [DEBUG] Erreur fonction Edge:', error);
             throw error;
         }
 
+        console.log('✅ [DEBUG] Réponse broadcast-event:', data);
+        console.log('   Delivered:', data?.delivered, 'Stale:', data?.stale);
         return true;
     } catch (error) {
-        console.error('Erreur lors de l\'envoi de la notification push:', error);
+        console.error('❌ [DEBUG] Exception lors de l\'envoi de la notification push:', error);
         return false;
     }
 };

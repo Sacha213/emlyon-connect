@@ -1,8 +1,6 @@
 // @ts-ignore - Deno runtime remote import
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 // @ts-ignore - Deno runtime remote import
-import webpush from "https://esm.sh/web-push@3.6.6";
-// @ts-ignore - Deno runtime remote import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 // Déclaration minimale pour satisfaire TypeScript en environnement Node
@@ -32,8 +30,19 @@ type BroadcastPayload = {
 };
 
 serve(async (req) => {
+    // Headers CORS
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    };
+
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders });
+    }
+
     if (req.method !== "POST") {
-        return new Response("Method Not Allowed", { status: 405 });
+        return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
     let payload: BroadcastPayload | null = null;
@@ -41,11 +50,11 @@ serve(async (req) => {
         payload = await req.json();
     } catch (error) {
         console.error("❌ Invalid JSON payload", error);
-        return new Response("Bad Request", { status: 400 });
+        return new Response("Bad Request", { status: 400, headers: corsHeaders });
     }
 
     if (!payload?.event?.id || !payload?.event?.title) {
-        return new Response("Missing event details", { status: 400 });
+        return new Response("Missing event details", { status: 400, headers: corsHeaders });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -56,12 +65,12 @@ serve(async (req) => {
 
     if (!supabaseUrl || !serviceRoleKey) {
         console.error("❌ Missing Supabase service credentials");
-        return new Response("Server misconfigured", { status: 500 });
+        return new Response("Server misconfigured", { status: 500, headers: corsHeaders });
     }
 
     if (!vapidPublicKey || !vapidPrivateKey) {
         console.error("❌ Missing VAPID keys in secrets");
-        return new Response("Server misconfigured", { status: 500 });
+        return new Response("Server misconfigured", { status: 500, headers: corsHeaders });
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -74,19 +83,18 @@ serve(async (req) => {
 
     if (subscriptionsError) {
         console.error("❌ Unable to fetch subscriptions", subscriptionsError);
-        return new Response("Database error", { status: 500 });
+        return new Response("Database error", { status: 500, headers: corsHeaders });
     }
 
     if (!subscriptions || subscriptions.length === 0) {
         console.log("ℹ️ No push subscriptions to notify");
         return new Response(JSON.stringify({ delivered: 0, stale: 0 }), {
             status: 200,
-            headers: { "Content-Type": "application/json" }
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
     }
 
-    webpush.setVapidDetails(vapidContact, vapidPublicKey, vapidPrivateKey);
-
+    // Préparer le corps de la notification
     const bodyLines: string[] = [];
     if (payload.event.date) {
         try {
@@ -116,9 +124,14 @@ serve(async (req) => {
     let delivered = 0;
     let stale = 0;
 
+    // Utiliser web-push via NPM pour gérer VAPID et l'encryption
+    // @ts-ignore - Deno npm: import
+    const webPushModule = await import("npm:web-push@3.6.7");
+    webPushModule.default.setVapidDetails(vapidContact, vapidPublicKey, vapidPrivateKey);
+
     for (const subscription of subscriptions as PushSubscriptionRow[]) {
         try {
-            await webpush.sendNotification(
+            await webPushModule.default.sendNotification(
                 {
                     endpoint: subscription.endpoint,
                     keys: subscription.keys
@@ -126,11 +139,13 @@ serve(async (req) => {
                 notificationPayload
             );
             delivered += 1;
-        } catch (error) {
+            console.log(`✅ Notification envoyée à ${subscription.endpoint.substring(0, 50)}...`);
+        } catch (error: any) {
             console.error("⚠️ Push send error", error);
-            const statusCode = (error as { statusCode?: number }).statusCode;
+            const statusCode = error?.statusCode;
             if (statusCode === 404 || statusCode === 410) {
                 stale += 1;
+                console.log(`🗑️ Suppression souscription expirée: ${subscription.endpoint.substring(0, 50)}...`);
                 await supabase
                     .from("PushSubscription")
                     .delete()
@@ -143,6 +158,6 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ delivered, stale }), {
         status: 200,
-        headers: { "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 });

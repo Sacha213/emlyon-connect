@@ -384,11 +384,17 @@ const App: React.FC = () => {
 
       const asyncJobs: Promise<unknown>[] = [loadEvents()];
 
+      console.log('🔔 [DEBUG] Envoi broadcast pour événement:', event.id, event.title);
       asyncJobs.push(
-        api.broadcastNewEvent(event).catch(err => {
-          console.error('Erreur broadcast événement:', err);
-          throw new Error('broadcast');
-        })
+        api.broadcastNewEvent(event)
+          .then(success => {
+            console.log('✅ [DEBUG] Broadcast terminé, succès:', success);
+            return success;
+          })
+          .catch(err => {
+            console.error('❌ [DEBUG] Erreur broadcast événement:', err);
+            throw new Error('broadcast');
+          })
       );
 
       if ((!event.pollOptions || event.pollOptions.length === 0) && event.date) {
