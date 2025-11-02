@@ -67,7 +67,7 @@ self.addEventListener('push', (event) => {
     } else {
         console.log('[SW] ⚠️ Pas de data dans le push event');
     }
-    
+
     console.log('[SW] 🔔 Affichage notification:', notificationData);
 
     event.waitUntil(
