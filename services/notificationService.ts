@@ -63,7 +63,7 @@ export async function subscribeToPushNotifications(userId: string): Promise<Subs
     console.log('🔍 [DEBUG] User Agent:', navigator.userAgent);
     console.log('🔍 [DEBUG] Display mode standalone:', window.matchMedia('(display-mode: standalone)').matches);
     console.log('🔍 [DEBUG] Display mode:', window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : window.matchMedia('(display-mode: fullscreen)').matches ? 'fullscreen' : window.matchMedia('(display-mode: minimal-ui)').matches ? 'minimal-ui' : 'browser');
-    
+
     if (!VAPID_PUBLIC_KEY) {
         console.error('❌ Aucune clé VAPID publique configurée. Vérifie VITE_VAPID_PUBLIC_KEY.');
         return { ok: false, reason: 'unsupported' };
@@ -128,7 +128,7 @@ export async function subscribeToPushNotifications(userId: string): Promise<Subs
         console.log('🔍 [DEBUG] Vérification subscription existante...');
         subscription = await finalRegistration.pushManager.getSubscription();
         console.log('🔍 [DEBUG] Subscription existante:', !!subscription);
-        
+
         if (!subscription) {
             console.log('🔍 [DEBUG] Création nouvelle subscription...');
             subscription = await finalRegistration.pushManager.subscribe({
