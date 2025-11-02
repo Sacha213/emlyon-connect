@@ -98,39 +98,57 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.showNotification(notificationData.title, {
             body: notificationData.body,
-            icon: notificationData.icon,
-            badge: notificationData.badge,
+            icon: notificationData.icon || '/icons/android/android-launchericon-192-192.png',
+            badge: notificationData.badge || '/icons/android/android-launchericon-96-96.png',
             tag: notificationData.tag,
             requireInteraction: notificationData.requireInteraction,
             data: notificationData.data,
-            vibrate: [200, 100, 200],
-            actions: notificationData.actions || []
+            vibrate: notificationData.vibrate || [200, 100, 200],
+            actions: [
+                {
+                    action: 'view',
+                    title: '👀 Voir l\'événement',
+                    icon: '/icons/android/android-launchericon-96-96.png'
+                }
+            ]
         })
     );
 });
 
 // Écouter les clics sur les notifications
 self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] Click sur notification:', event.notification);
-
+    console.log('[SW] 🖱️ Click sur notification:', event.notification.tag);
+    
     event.notification.close();
 
-    // Gérer les actions
-    if (event.action) {
-        console.log('[SW] Action:', event.action);
-    }
+    const urlToOpen = event.notification.data?.url 
+        ? new URL(event.notification.data.url, self.location.origin).href
+        : self.location.origin;
+
+    console.log('[SW] 🖱️ URL à ouvrir:', urlToOpen);
 
     // Ouvrir ou focus l'app
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-            // Chercher une fenêtre déjà ouverte
+            console.log('[SW] 🖱️ Clients ouverts:', clientList.length);
+            
+            // Chercher une fenêtre déjà ouverte avec l'app
             for (let client of clientList) {
-                if (client.url.includes(self.registration.scope) && 'focus' in client) {
-                    return client.focus();
+                if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+                    console.log('[SW] 🖱️ Focus client existant');
+                    return client.focus().then(() => {
+                        // Naviguer vers l'événement
+                        if (event.notification.data?.url) {
+                            return client.navigate(urlToOpen);
+                        }
+                        return client;
+                    });
                 }
             }
+            
             // Sinon, ouvrir une nouvelle fenêtre
             if (clients.openWindow) {
+                console.log('[SW] 🖱️ Ouverture nouvelle fenêtre');
                 const url = event.notification.data?.url || '/';
                 return clients.openWindow(url);
             }

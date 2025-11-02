@@ -1,0 +1,105 @@
+import { useEffect, useState } from 'react';
+import { useRegisterSW } from 'virtual:pwa-register/react';
+
+export function UpdatePrompt() {
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegisteredSW(swUrl, r) {
+      console.log('[PWA] Service Worker enregistré:', swUrl);
+      
+      // Vérifier les mises à jour toutes les heures
+      if (r) {
+        setInterval(() => {
+          console.log('[PWA] Vérification des mises à jour...');
+          r.update();
+        }, 60 * 60 * 1000); // 1 heure
+      }
+    },
+    onRegisterError(error) {
+      console.error('[PWA] Erreur enregistrement SW:', error);
+    },
+  });
+
+  useEffect(() => {
+    if (needRefresh) {
+      setShowPrompt(true);
+    }
+  }, [needRefresh]);
+
+  const handleUpdate = () => {
+    setShowPrompt(false);
+    updateServiceWorker(true);
+  };
+
+  const handleDismiss = () => {
+    setShowPrompt(false);
+    setNeedRefresh(false);
+  };
+
+  if (!showPrompt) return null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: '#1a1a1a',
+        color: 'white',
+        padding: '16px 24px',
+        borderRadius: '12px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+        zIndex: 10000,
+        maxWidth: '90%',
+        width: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+      }}
+    >
+      <div style={{ fontSize: '16px', fontWeight: '600' }}>
+        🎉 Nouvelle version disponible !
+      </div>
+      <div style={{ fontSize: '14px', opacity: 0.9 }}>
+        Une mise à jour est disponible avec de nouvelles fonctionnalités.
+      </div>
+      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+        <button
+          onClick={handleUpdate}
+          style={{
+            flex: 1,
+            padding: '10px 16px',
+            backgroundColor: '#e30613',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+          }}
+        >
+          Mettre à jour
+        </button>
+        <button
+          onClick={handleDismiss}
+          style={{
+            padding: '10px 16px',
+            backgroundColor: 'transparent',
+            color: 'white',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '8px',
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}
+        >
+          Plus tard
+        </button>
+      </div>
+    </div>
+  );
+}

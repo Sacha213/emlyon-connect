@@ -114,7 +114,11 @@ serve(async (req) => {
     const notificationPayload = JSON.stringify({
         title: `🎉 ${payload.event.title}`,
         body: bodyLines.length > 0 ? bodyLines.join("\n") : "Nouveau rendez-vous proposé sur emlyon Connect",
+        icon: '/icons/android/android-launchericon-192-192.png',
+        badge: '/icons/android/android-launchericon-96-96.png',
         tag: `event-${payload.event.id}`,
+        requireInteraction: false,
+        vibrate: [200, 100, 200],
         data: {
             url: `/?view=events&eventId=${payload.event.id}`,
             eventId: payload.event.id

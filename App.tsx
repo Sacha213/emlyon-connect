@@ -5,6 +5,7 @@ import RegistrationScreen from './components/RegistrationScreen';
 import Dashboard from './components/Dashboard';
 import NotificationComponent from './components/Notification';
 import LandingPage from './components/LandingPage';
+import { UpdatePrompt } from './components/UpdatePrompt';
 import * as api from './services/api';
 import { notifyNewEvent, scheduleEventReminder } from './services/eventNotificationService';
 
@@ -603,6 +604,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-brand-bg">
       {notification && <NotificationComponent notification={notification} onClose={() => setNotification(null)} />}
+      <UpdatePrompt />
       {renderContent()}
     </div>
   );
