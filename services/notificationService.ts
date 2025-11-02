@@ -56,12 +56,26 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
  * Enregistre le Service Worker et souscrit aux notifications push
  */
 export async function subscribeToPushNotifications(userId: string): Promise<SubscribeToPushResult> {
+    console.log('🔍 [DEBUG] Début subscribeToPushNotifications');
+    console.log('🔍 [DEBUG] VAPID_PUBLIC_KEY présente:', !!VAPID_PUBLIC_KEY);
+    console.log('🔍 [DEBUG] Notification in window:', 'Notification' in window);
+    console.log('🔍 [DEBUG] serviceWorker in navigator:', 'serviceWorker' in navigator);
+    console.log('🔍 [DEBUG] User Agent:', navigator.userAgent);
+    console.log('🔍 [DEBUG] Display mode standalone:', window.matchMedia('(display-mode: standalone)').matches);
+    console.log('🔍 [DEBUG] Display mode:', window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : window.matchMedia('(display-mode: fullscreen)').matches ? 'fullscreen' : window.matchMedia('(display-mode: minimal-ui)').matches ? 'minimal-ui' : 'browser');
+    
     if (!VAPID_PUBLIC_KEY) {
-        console.error('Aucune clé VAPID publique configurée. Vérifie VITE_VAPID_PUBLIC_KEY.');
+        console.error('❌ Aucune clé VAPID publique configurée. Vérifie VITE_VAPID_PUBLIC_KEY.');
         return { ok: false, reason: 'unsupported' };
     }
 
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    if (!('Notification' in window)) {
+        console.error('❌ Notification API non disponible');
+        return { ok: false, reason: 'unsupported' };
+    }
+
+    if (!('serviceWorker' in navigator)) {
+        console.error('❌ Service Worker API non disponible');
         return { ok: false, reason: 'unsupported' };
     }
 
@@ -75,44 +89,59 @@ export async function subscribeToPushNotifications(userId: string): Promise<Subs
 
     let registration: ServiceWorkerRegistration | undefined | null;
     try {
+        console.log('🔍 [DEBUG] Recherche du Service Worker existant...');
         registration = await navigator.serviceWorker.getRegistration();
+        console.log('🔍 [DEBUG] Registration existante:', !!registration);
         if (!registration) {
+            console.log('🔍 [DEBUG] Enregistrement du Service Worker /sw.js...');
             registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-            console.log('Service Worker enregistré:', registration);
+            console.log('✅ Service Worker enregistré:', registration);
         }
     } catch (error) {
-        console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
+        console.error('❌ Erreur lors de l\'enregistrement du Service Worker:', error);
         return { ok: false, reason: 'service-worker-unavailable', error };
     }
 
     let activeRegistration: ServiceWorkerRegistration | null = null;
     try {
+        console.log('🔍 [DEBUG] Attente Service Worker ready...');
         activeRegistration = await navigator.serviceWorker.ready;
+        console.log('✅ Service Worker prêt');
     } catch (error) {
-        console.warn('Service Worker prêt indisponible:', error);
+        console.warn('⚠️ Service Worker prêt indisponible:', error);
     }
 
     const finalRegistration = activeRegistration ?? registration;
     if (!finalRegistration) {
+        console.error('❌ Aucune registration finale disponible');
         return { ok: false, reason: 'service-worker-unavailable' };
     }
 
+    console.log('🔍 [DEBUG] pushManager disponible:', !!finalRegistration.pushManager);
     if (!finalRegistration.pushManager) {
+        console.error('❌ pushManager non disponible sur cette registration');
         return { ok: false, reason: 'push-unavailable' };
     }
 
     let subscription: PushSubscription | null = null;
     try {
+        console.log('🔍 [DEBUG] Vérification subscription existante...');
         subscription = await finalRegistration.pushManager.getSubscription();
+        console.log('🔍 [DEBUG] Subscription existante:', !!subscription);
+        
         if (!subscription) {
+            console.log('🔍 [DEBUG] Création nouvelle subscription...');
             subscription = await finalRegistration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource
             });
+            console.log('✅ Subscription créée:', subscription.endpoint);
         }
     } catch (error) {
-        console.error('Erreur lors de la souscription push:', error);
+        console.error('❌ Erreur lors de la souscription push:', error);
         if (error instanceof DOMException) {
+            console.error('❌ DOMException name:', error.name);
+            console.error('❌ DOMException message:', error.message);
             if (error.name === 'InvalidStateError') {
                 return { ok: false, reason: 'ios-settings', error };
             }
@@ -120,6 +149,7 @@ export async function subscribeToPushNotifications(userId: string): Promise<Subs
                 return { ok: false, reason: 'permission-denied', error };
             }
         }
+        console.error('❌ Type d\'erreur:', error?.constructor?.name);
         return { ok: false, reason: 'unknown', error };
     }
 
