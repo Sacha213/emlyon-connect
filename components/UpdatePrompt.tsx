@@ -1,46 +1,47 @@
 import { useEffect, useState } from 'react';
-import { useRegisterSW } from 'virtual:pwa-register/react';
 
 export function UpdatePrompt() {
-    const [showPrompt, setShowPrompt] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
 
-    const {
-        needRefresh: [needRefresh, setNeedRefresh],
-        updateServiceWorker,
-    } = useRegisterSW({
-        onRegisteredSW(swUrl, r) {
-            console.log('[PWA] Service Worker enregistré:', swUrl);
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
 
-            // Vérifier les mises à jour toutes les heures
-            if (r) {
-                setInterval(() => {
-                    console.log('[PWA] Vérification des mises à jour...');
-                    r.update();
-                }, 60 * 60 * 1000); // 1 heure
-            }
-        },
-        onRegisterError(error) {
-            console.error('[PWA] Erreur enregistrement SW:', error);
-        },
+    // Écouter les mises à jour du Service Worker
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('[PWA] Nouveau Service Worker activé');
+      setShowPrompt(true);
     });
 
-    useEffect(() => {
-        if (needRefresh) {
-            setShowPrompt(true);
+    // Vérifier les mises à jour périodiquement
+    const checkForUpdates = async () => {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          console.log('[PWA] Vérification des mises à jour...');
+          await registration.update();
         }
-    }, [needRefresh]);
-
-    const handleUpdate = () => {
-        setShowPrompt(false);
-        updateServiceWorker(true);
+      } catch (error) {
+        console.error('[PWA] Erreur vérification mises à jour:', error);
+      }
     };
 
-    const handleDismiss = () => {
-        setShowPrompt(false);
-        setNeedRefresh(false);
-    };
+    // Vérifier toutes les heures
+    const interval = setInterval(checkForUpdates, 60 * 60 * 1000);
+    
+    // Vérifier au chargement
+    checkForUpdates();
 
-    if (!showPrompt) return null;
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleUpdate = () => {
+    setShowPrompt(false);
+    window.location.reload();
+  };
+
+  const handleDismiss = () => {
+    setShowPrompt(false);
+  };    if (!showPrompt) return null;
 
     return (
         <div
