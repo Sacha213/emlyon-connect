@@ -179,40 +179,6 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Stratégie de cache pour les requêtes réseau
-self.addEventListener('fetch', (event) => {
-    // Ignorer les requêtes non-GET
-    if (event.request.method !== 'GET') return;
-
-    // Ignorer les requêtes vers Supabase (toujours réseau)
-    if (event.request.url.includes('supabase.co')) {
-        event.respondWith(fetch(event.request));
-        return;
-    }
-
-    // Cache-first pour les assets statiques
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-
-            return caches.open(RUNTIME_CACHE).then((cache) => {
-                return fetch(event.request).then((response) => {
-                    // Ne pas cacher les erreurs
-                    if (!response || response.status !== 200) {
-                        return response;
-                    }
-
-                    // Cloner pour mettre en cache
-                    cache.put(event.request, response.clone());
-                    return response;
-                });
-            });
-        })
-    );
-});
-
 // Message handler pour communication entre SW et page
 self.addEventListener('message', (event) => {
     console.log('[SW] Message reçu:', event.data);
