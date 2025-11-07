@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icons/**/*'],
+        includeAssets: ['icons/**/*', 'reset.html'],
         manifest: {
           name: 'emlyon Connect',
           short_name: 'emlyon',
