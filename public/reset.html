@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Cache - emlyon Connect</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #e30613;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        button {
+            background: #e30613;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+        button:hover {
+            background: #c0050f;
+            transform: translateY(-2px);
+        }
+        .secondary {
+            background: #667eea;
+        }
+        .secondary:hover {
+            background: #5568d3;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Reset emlyon Connect</h1>
+        <p>Si l'application ne s'affiche pas correctement (CSS manquant, page blanche), utilisez ce bouton pour nettoyer tous les caches et repartir à zéro.</p>
+        
+        <button onclick="resetAll()">🗑️ Nettoyer et Redémarrer</button>
+        <button class="secondary" onclick="goToApp()">↩️ Retour à l'app</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        async function resetAll() {
+            const status = document.getElementById('status');
+            status.className = 'status info';
+            status.textContent = '⏳ Nettoyage en cours...';
+
+            try {
+                // 1. Désinscrire tous les Service Workers
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        await registration.unregister();
+                        console.log('SW désinscrit:', registration);
+                    }
+                }
+
+                // 2. Vider tous les caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    for (const cacheName of cacheNames) {
+                        await caches.delete(cacheName);
+                        console.log('Cache supprimé:', cacheName);
+                    }
+                }
+
+                // 3. Vider le localStorage (sauf session utilisateur)
+                const userSession = localStorage.getItem('user');
+                const supabaseSession = localStorage.getItem('supabase_session');
+                localStorage.clear();
+                if (userSession) localStorage.setItem('user', userSession);
+                if (supabaseSession) localStorage.setItem('supabase_session', supabaseSession);
+
+                // 4. Succès
+                status.className = 'status success';
+                status.textContent = '✅ Nettoyage terminé ! Redirection dans 2 secondes...';
+
+                // 5. Redirection
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+
+            } catch (error) {
+                status.className = 'status';
+                status.style.background = '#f8d7da';
+                status.style.color = '#721c24';
+                status.textContent = '❌ Erreur: ' + error.message;
+            }
+        }
+
+        function goToApp() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
