@@ -89,6 +89,16 @@ const App: React.FC = () => {
 
   // Restaurer la session au chargement de l'application
   useEffect(() => {
+    // Écouter les messages du Service Worker pour forcer le reload
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'RELOAD') {
+          console.log('[App] Message RELOAD reçu du SW, rechargement...');
+          window.location.reload();
+        }
+      });
+    }
+
     const savedUser = localStorage.getItem('user');
     const savedSession = localStorage.getItem('supabase_session');
 

@@ -50,7 +50,30 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
     console.log('[SW] Activation...');
-    event.waitUntil(self.clients.claim());
+    event.waitUntil(
+        Promise.all([
+            // Nettoyer tous les anciens caches
+            caches.keys().then((cacheNames) => {
+                return Promise.all(
+                    cacheNames.map((cacheName) => {
+                        console.log('[SW] Suppression cache:', cacheName);
+                        return caches.delete(cacheName);
+                    })
+                );
+            }),
+            // Prendre le contrôle immédiatement
+            self.clients.claim()
+        ]).then(() => {
+            console.log('[SW] Caches nettoyés, recharge clients...');
+            // Forcer le rechargement de tous les clients
+            return self.clients.matchAll().then((clients) => {
+                clients.forEach((client) => {
+                    console.log('[SW] Envoi message reload à:', client.url);
+                    client.postMessage({ type: 'RELOAD' });
+                });
+            });
+        })
+    );
 });
 
 // Écouter les notifications push
